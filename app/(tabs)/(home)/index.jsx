@@ -1,98 +1,68 @@
-import axios from 'axios'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-
-
-// http://192.168.30.108:8080 [IP 주소]
+import useWebSocket from '../../../hooks/useWebSocket'
 
 const HomeScreen = () => {
-  const [growingData, setGrowingData] = useState(null)
-  const [motionCounts, setMotionCounts] = useState({
-    waterPump: 0,
-    led: 0,
-    fan: 0,
-    motion: 0
-  })
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const { 
+    sensorData,
+    getSensorData,
+    connectionStatus 
+  } = useWebSocket()
 
   useEffect(() => {
-    fetchData()
-  }, [])
-
-  const fetchData = async () => {
-    try {
-      setLoading(true)
+    // WebSocket이 연결될 때까지 기다렸다가 데이터 요청
+    if (connectionStatus === '연결됨') {
+      // 즉시 데이터 요청
+      getSensorData()
       
-      // 센서 데이터 조회
-      const growingResponse = await axios.get(`http://192.168.30.108:8080/growings`)
-      const lastGrowingData = growingResponse.data[growingResponse.data.length - 1]
-      setGrowingData(lastGrowingData)
-
-      // 오늘 작동 횟수 조회
-      const motionResponse = await axios.get(`http://192.168.30.108:8080/motions/today`)
-      const motionData = motionResponse.data
-
-      // 각 속성이 1인 데이터의 개수 계산
-      const counts = {
-        waterPump: motionData.filter(item => item.waterPump === 1).length,
-        led: motionData.filter(item => item.ledLight === 1).length,
-        fan: motionData.filter(item => item.fanMotor === 1).length,
-        motion: motionData.filter(item => item.motionDetected === 1).length
-      }
+      // 1분(60초)마다 자동으로 데이터 갱신
+      const interval = setInterval(() => {
+        getSensorData()
+      }, 60000)
       
-      setMotionCounts(counts)
-
-    } catch (error) {
-      console.log(error)
-      setError(error.message)
-    } finally {
-      setLoading(false)
+      // 클린업: 컴포넌트 언마운트 시 interval 제거
+      return () => clearInterval(interval)
     }
-  }
+  }, [connectionStatus])  // connectionStatus가 변경될 때마다 실행!
 
-  if (loading) {
+  // 연결 대기 중이거나 센서 데이터가 없을 때
+  if (!sensorData) {
     return (
       <SafeAreaView style={styles.container}>
         <ActivityIndicator size="large" />
+        <Text style={{ textAlign: 'center', marginTop: 20 }}>
+          {connectionStatus}
+        </Text>
       </SafeAreaView>
     )
   }
 
-  if (error) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <Text>에러: {error}</Text>
-      </SafeAreaView>
-    )
-  }
-
-return (
-  <SafeAreaView style={styles.container}>
-    {/* 상단: 센서 데이터 */}
-    <View style={styles.sensorSectionTop}>
-      <Text style={styles.sectionTitleTop}>센서 데이터</Text>
-      <View style={styles.dataBoxTop}>
-        <Text style={styles.dataTextTemper}>온도: {growingData?.temper}°C</Text>
-        <Text style={styles.dataTextHumidity}>습도: {growingData?.humidity}%</Text>
-        <Text style={styles.dataTextSoilHumiditiy}>토양습도: {growingData?.soilHumidity}%</Text>
-        <Text style={styles.dataTextIllumination}>조도: {growingData?.illumination} lux</Text>
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* 상단: 센서 데이터 */}
+      <View style={styles.sensorSectionTop}>
+        <Text style={styles.sectionTitleTop}>센서 데이터</Text>
+        <View style={styles.dataBoxTop}>
+          <Text style={styles.dataTextTemper}>온도 : {sensorData.temperature || 0}°C</Text>
+          <Text style={styles.dataTextHumidity}>습도 : {sensorData.humidity || 0}%</Text>
+          <Text style={styles.dataTextSoilHumiditiy}>토양습도 : {sensorData.soil_moisture || 0}%</Text>
+          <Text style={styles.dataTextIllumination}>조도 : {sensorData.light_value || 0}</Text>
+        </View>
       </View>
-    </View>
 
-    {/* 하단: 오늘 작동 횟수 */}
-    <View style={styles.motionSectionBtm}>
-      <Text style={styles.sectionTitleBtm}>오늘 작동 횟수</Text>
-      <View style={styles.dataBoxBtm}>
-        <Text style={styles.dataTextWater}>물펌프: {motionCounts.waterPump}회</Text>
-        <Text style={styles.dataTextLed}>LED: {motionCounts.led}회</Text>
-        <Text style={styles.dataTextFan}>팬: {motionCounts.fan}회</Text>
-        <Text style={styles.dataTextMotion}>모션감지: {motionCounts.motion}회</Text>
+      {/* 하단: 오늘 작동 횟수 */}
+      <View style={styles.motionSectionBtm}>
+        <Text style={styles.sectionTitleBtm}>오늘 작동 횟수</Text>
+        <View style={styles.dataBoxBtm}>
+          <Text style={styles.dataTextWater}>물펌프 : 0회</Text>
+          <Text style={styles.dataTextLed}>LED : 0회</Text>
+          <Text style={styles.dataTextFan}>팬 : 0회</Text>
+          <Text style={styles.dataTextMotion}>모션감지 : 0회</Text>
+        </View>
       </View>
-    </View>
-  </SafeAreaView>
-)
+    </SafeAreaView>
+  )
 }
 
 export default HomeScreen
