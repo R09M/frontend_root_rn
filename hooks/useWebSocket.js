@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 const useWebSocket = () => {
   const [ws, setWs] = useState(null);
@@ -32,9 +32,6 @@ const useWebSocket = () => {
       
       socket.onopen = () => {
         console.log('✅ 웹소켓 연결 성공!');
-        console.log('연결 시간:', new Date().toLocaleTimeString());
-        console.log('ReadyState:', socket.readyState);
-        
         setConnectionStatus('연결됨 ✅');
         reconnectAttempts = 0;
         
@@ -45,13 +42,11 @@ const useWebSocket = () => {
       };
       
       socket.onmessage = (event) => {
-        console.log('📩 서버 메시지 수신');
-        console.log('원본 데이터:', event.data);
-        console.log('수신 시간:', new Date().toLocaleTimeString());
+        console.log('📩 서버 메시지 수신:', event.data);
         
         try {
           const data = JSON.parse(event.data);
-          console.log('📊 파싱 성공:', JSON.stringify(data, null, 2));
+          console.log('📊 파싱 성공:', data);
           
           if (data.data) {
             setSensorData(data.data);
@@ -63,36 +58,12 @@ const useWebSocket = () => {
       };
 
       socket.onerror = (error) => {
-        console.error('═══════════════════════════════');
-        console.error('❌ 웹소켓 에러!');
-        console.error('에러 객체:', error);
-        console.error('에러 시간:', new Date().toLocaleTimeString());
-        console.error('═══════════════════════════════');
+        console.error('❌ 웹소켓 에러!', error);
         setConnectionStatus('에러 ❌');
       };
 
       socket.onclose = (event) => {
-        console.log('═══════════════════════════════');
-        console.log('🔌 웹소켓 연결 종료');
-        console.log('종료 코드:', event.code);
-        console.log('종료 이유:', event.reason || '(없음)');
-        console.log('정상 종료 여부:', event.wasClean);
-        console.log('종료 시간:', new Date().toLocaleTimeString());
-        console.log('═══════════════════════════════');
-        
-        const closeReasons = {
-          1000: '정상 종료',
-          1001: '서버가 종료됨',
-          1002: '프로토콜 에러',
-          1003: '지원하지 않는 데이터',
-          1006: '비정상 종료 (연결 끊김)',
-          1007: '잘못된 데이터 형식',
-          1008: '정책 위반',
-          1009: '메시지가 너무 큼',
-          1011: '서버 에러'
-        };
-        
-        console.log('종료 코드 의미:', closeReasons[event.code] || '알 수 없음');
+        console.log('🔌 웹소켓 연결 종료 - 코드:', event.code);
         
         if (!isIntentionalClose && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
           reconnectAttempts++;
@@ -121,7 +92,6 @@ const useWebSocket = () => {
       
       if (reconnectTimer) {
         clearTimeout(reconnectTimer);
-        reconnectTimer = null;
       }
       
       if (socket) {
@@ -130,11 +100,9 @@ const useWebSocket = () => {
     };
   }, []);
 
-  const getSensorData = () => {
-    console.log('═══════════════════════════════');
+  // ✅ useCallback으로 함수 메모이제이션
+  const getSensorData = useCallback(() => {
     console.log('📡 센서 데이터 요청');
-    console.log('WebSocket 상태:', ws?.readyState);
-    console.log('요청 시간:', new Date().toLocaleTimeString());
     
     if (!ws) {
       console.error('❌ WebSocket 객체 없음');
@@ -143,20 +111,15 @@ const useWebSocket = () => {
     
     if (ws.readyState === WebSocket.OPEN) {
       const command = { command: 'get_sensor_data' };
-      console.log('📤 전송 데이터:', JSON.stringify(command));
+      console.log('📤 전송:', command);
       ws.send(JSON.stringify(command));
       console.log('✅ 전송 완료');
     } else {
-      const states = ['연결 중(0)', '연결됨(1)', '종료 중(2)', '종료됨(3)'];
-      console.error('❌ 전송 불가 - 상태:', states[ws.readyState]);
+      console.error('❌ WebSocket 연결 안됨 - 상태:', ws.readyState);
     }
-    console.log('═══════════════════════════════');
-  };
+  }, [ws]);
 
-  const controlLED = (state) => {
-    console.log('═══════════════════════════════');
-    console.log(`💡 LED ${state} 제어 요청`);
-    
+  const controlLED = useCallback((state) => {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
       console.error('❌ WebSocket 연결 안됨');
       return;
@@ -168,15 +131,10 @@ const useWebSocket = () => {
       state: state
     };
     ws.send(JSON.stringify(command));
-    console.log('✅ 전송 완료');
-    console.log('═══════════════════════════════');
-  };
+    console.log('💡 LED 제어:', state);
+  }, [ws]);
 
-  // **바뀌었음** - 물펌프 상태 반전
-  const controlPump = (state) => {
-    console.log('═══════════════════════════════');
-    console.log(`💦 물펌프 ${state} 제어 요청 (반전 전송)`);
-    
+  const controlPump = useCallback((state) => {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
       console.error('❌ WebSocket 연결 안됨');
       return;
@@ -189,15 +147,10 @@ const useWebSocket = () => {
       state: actualState
     };
     ws.send(JSON.stringify(command));
-    console.log('✅ 전송 완료');
-    console.log('═══════════════════════════════');
-  };
+    console.log('💦 펌프 제어:', state, '→', actualState);
+  }, [ws]);
 
-  // **바뀌었음** - 환풍기 상태 반전
-  const controlFan = (state) => {
-    console.log('═══════════════════════════════');
-    console.log(`🌀 환풍기 ${state} 제어 요청 (반전 전송)`);
-    
+  const controlFan = useCallback((state) => {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
       console.error('❌ WebSocket 연결 안됨');
       return;
@@ -210,14 +163,10 @@ const useWebSocket = () => {
       state: actualState
     };
     ws.send(JSON.stringify(command));
-    console.log('✅ 전송 완료');
-    console.log('═══════════════════════════════');
-  };
+    console.log('🌀 팬 제어:', state, '→', actualState);
+  }, [ws]);
 
-  const updateSettings = (key, value) => {
-    console.log('═══════════════════════════════');
-    console.log(`⚙️ 설정 변경 요청: ${key} = ${value}`);
-    
+  const updateSettings = useCallback((key, value) => {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
       console.error('❌ WebSocket 연결 안됨');
       return;
@@ -229,14 +178,10 @@ const useWebSocket = () => {
       value: value
     };
     ws.send(JSON.stringify(command));
-    console.log('✅ 전송 완료');
-    console.log('═══════════════════════════════');
-  };
+    console.log('⚙️ 설정 변경:', key, '=', value);
+  }, [ws]);
 
-  const setMode = (device, mode) => {
-    console.log('═══════════════════════════════');
-    console.log(`🔄 모드 변경 요청: ${device} -> ${mode}`);
-    
+  const setMode = useCallback((device, mode) => {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
       console.error('❌ WebSocket 연결 안됨');
       return;
@@ -248,9 +193,8 @@ const useWebSocket = () => {
       mode: mode
     };
     ws.send(JSON.stringify(command));
-    console.log('✅ 전송 완료');
-    console.log('═══════════════════════════════');
-  };
+    console.log('🔄 모드 변경:', device, '→', mode);
+  }, [ws]);
 
   return {
     sensorData,
