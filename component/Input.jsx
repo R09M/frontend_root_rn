@@ -1,8 +1,8 @@
-import { StyleSheet, Text, View } from 'react-native'
-import React from 'react'
+import { StyleSheet, Text, TextInput, View } from 'react-native'
+import { useState } from 'react'
 import { colors } from '../constants/colorConstant';
 
-const Input = ({label='', isPw=false}) => {
+const Input = ({label='',  isPw=false, ...props}) => {
   //input 태그의 focus 여부를 저장하는 변수
   const [isFocus, setIsFocus] = useState(false);
 
@@ -16,6 +16,7 @@ const Input = ({label='', isPw=false}) => {
         onFocus={() => setIsFocus(true)}
         //focus를 잃을 때 실행 함수
         onBlur={() => setIsFocus(false)}
+        {...props}
       />
     </View>
   )
