@@ -43,7 +43,6 @@ const ControlHomeScreen = () => {
         <ControlCard
           icon="💡"
           title="LED 조명"
-          subtitle="베드룸 1"
           isOn={ledStatus}
           onToggle={handleLEDToggle}
           type="led"
@@ -52,7 +51,6 @@ const ControlHomeScreen = () => {
         <ControlCard
           icon="💦"
           title="물펌프"
-          subtitle="베드룸 1"
           isOn={pumpStatus}
           onToggle={handlePumpToggle}
           type="pump"
@@ -61,7 +59,6 @@ const ControlHomeScreen = () => {
         <ControlCard
           icon="🌀"
           title="환풍기"
-          subtitle="베드룸 1"
           isOn={fanStatus}
           onToggle={handleFanToggle}
           type="fan"
