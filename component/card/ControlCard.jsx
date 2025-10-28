@@ -1,46 +1,48 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { colors } from '../../constants/colorConstant';
-import CardHeader from './CardHeader';
 
-const ControlCard = ({ icon, title, subtitle, isOn, onToggle, type }) => {
+// ControlCard 컴포넌트: 장치 토글 버튼과 정보 표시용 카드
+const ControlCard = ({ icon, title, subtitle, isOn, onToggle, type, disabled }) => {
+  
+  // 장치 타입에 따라 그라디언트 색상 설정
+  const gradientColors =
+    type === 'led'
+      ? [colors.YELLOW, '#FFF4CC']
+      : type === 'pump'
+      ? [colors.BLUE_500, colors.BLUE_300]
+      : [colors.SKY_500, colors.SKY_200];
+
   return (
     <View style={styles.card}>
-      <CardHeader 
-        icon={icon} 
-        title={title} 
-        subtitle={subtitle} 
-      />
-      
-      <TouchableOpacity onPress={onToggle} activeOpacity={0.7}>
-        {isOn ? (
-          <LinearGradient
-            colors={
-              type === 'led' ? [colors.YELLOW, '#FFF4CC'] :
-              type === 'pump' ? [colors.BLUE_500, colors.BLUE_300] :
-              [colors.SKY_500, colors.SKY_200]
-            }
-            start={{x: 0, y: 0}}
-            end={{x: 1, y: 1}}
-            style={styles.toggleButtonActive}
-          >
-            <Text style={styles.toggleTextActive}>Purifying</Text>
-            <View style={styles.powerIconContainer}>
-              <View style={styles.powerIcon}>
-                <View style={styles.powerIconInner} />
-              </View>
-            </View>
-          </LinearGradient>
-        ) : (
-          <View style={styles.toggleButton}>
-            <Text style={styles.toggleText}>Off</Text>
-            <View style={styles.powerIconContainer}>
-              <View style={styles.powerIcon}>
-                <View style={styles.powerIconInner} />
-              </View>
+      <View style={styles.cardHeader}>
+        <Text style={styles.icon}>{icon}</Text>
+        <View style={styles.titleContainer}>
+          <Text style={styles.cardTitle}>{title}</Text>
+          {subtitle && <Text style={styles.cardSubtitle}>{subtitle}</Text>}
+        </View>
+      </View>
+
+      <TouchableOpacity
+        onPress={onToggle}
+        activeOpacity={disabled ? 1 : 0.7}
+        disabled={disabled}
+      >
+        <LinearGradient
+          colors={isOn ? gradientColors : [colors.GRAY_200, colors.GRAY_200]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.toggleButton, disabled && styles.cardDisabled]}
+        >
+          <Text style={[styles.toggleText, isOn && styles.toggleTextActive]}>
+            {isOn ? 'ON' : 'OFF'}
+          </Text>
+          <View style={styles.powerIconContainer}>
+            <View style={styles.powerIcon}>
+              <View style={styles.powerIconInner} />
             </View>
           </View>
-        )}
+        </LinearGradient>
       </TouchableOpacity>
     </View>
   );
@@ -59,22 +61,17 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
+  cardDisabled: {
+    opacity: 0.5,
+  },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
   },
-  iconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.GRAY_100,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
   icon: {
     fontSize: 28,
+    marginRight: 12,
   },
   titleContainer: {
     flex: 1,
@@ -93,16 +90,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.GRAY_200,
-    borderRadius: 50,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    minHeight: 64,
-  },
-  toggleButtonActive: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     borderRadius: 50,
     paddingVertical: 16,
     paddingHorizontal: 24,
@@ -114,8 +101,6 @@ const styles = StyleSheet.create({
     color: colors.GRAY_500,
   },
   toggleTextActive: {
-    fontSize: 20,
-    fontWeight: '600',
     color: colors.WHITE,
   },
   powerIconContainer: {
