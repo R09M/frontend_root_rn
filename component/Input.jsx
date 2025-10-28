@@ -1,3 +1,4 @@
+
 import { StyleSheet, Text, View, TextInput } from 'react-native'
 import React, { useState } from 'react'
 import { colors } from '../constants/colorConstant';
@@ -11,6 +12,11 @@ const Input = ({
   editable=true,
   ...props
 }) => {
+import { StyleSheet, Text, TextInput, View } from 'react-native'
+import { useState } from 'react'
+import { colors } from '../constants/colorConstant';
+
+const Input = ({label='',  isPw=false, ...props}) => {
   //input 태그의 focus 여부를 저장하는 변수
   const [isFocus, setIsFocus] = useState(false);
 
@@ -24,6 +30,7 @@ const Input = ({
         onFocus={() => setIsFocus(true)}
         //focus를 잃을 때 실행 함수
         onBlur={() => setIsFocus(false)}
+
         value={value}
         onChangeText={onChangeText} //타이핑 시 
         placeholder={placeholder}
