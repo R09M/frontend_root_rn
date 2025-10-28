@@ -10,6 +10,41 @@ const SettingHomeScreen = () => {
   //공유 버튼 슬라이드 스위치
   const [isEnabled, setIsEnabled] = useState(false);
 
+  //모달 상태
+  const [modalVisivle, setModalVisible] = useState(false);
+  const [selectedSetting, setSelectedSetting] = useState(null);
+  const [inputValue, setInputValue] = useState('');
+
+  //설정 클릭 시 모달 열기
+  const openModal = (type) => {
+    setSelectedSetting(type);
+    setInputValue(setting[type].value.toString());
+    setModalVisible(ture);
+  }
+
+  // 값 저장
+  const saveValue = () => {
+    const numValue = parseFloat(inputValue); //문자열을 실수로 변환
+    const setting = settings[selectedSetting];
+    
+    // 유효성 검증
+    if (isNaN(numValue)) {
+      Alert.alert('오류', '숫자를 입력해주세요');
+      return;
+    }
+
+    if (numValue < setting.min || numValue > setting.max) {
+      Alert.alert('오류', `${setting.min}~${setting.max} 범위의 값을 입력해주세요`);
+      return;
+    }
+  }
+  
+  // 상태 업데이트
+  setSettings(prev => ({
+    ...prev,
+    [selectedSetting]: { ...prev[selectedSetting], value: numValue }
+  }));
+
   //슬라이드로 스위치를 on/off함
   //previousState => !previousState -> 이전 상태의 반대값을 반환하는 코드
   //const toggleSwitch = () => {setIsEnabled(!isEnabled)}; 와 같음
