@@ -1,10 +1,13 @@
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5'
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import axios from 'axios'
+import dayjs from 'dayjs'
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, StyleSheet, Text, View, Image } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import useWebSocket from '../../../hooks/useWebSocket'
-import axios from 'axios'
-import {SERVER_URL} from '../../../constants/appConst'
-import dayjs from 'dayjs'
+import { SERVER_URL } from '../../../constants/appConst';
 
 const HomeScreen = () => {
   const { 
@@ -12,190 +15,168 @@ const HomeScreen = () => {
     getSensorData,
     connectionStatus 
   } = useWebSocket()
-
-  // 작동 횟수 데이터를 담을 state 변수
   const [controlCnt, setControlCnt] = useState({
-    motionDetectedCnt: 0
-    , fanMotorCnt: 0
-    , waterPumpCnt: 0
-    , ledLightCnt: 0
-    , lastMotionDate: '-'
+    motionDetectedCnt: 0,
+    fanMotorCnt: 0,
+    waterPumpCnt: 0,
+    ledLightCnt: 0,
+    lastMotionDate: '-'
   });
-
   useEffect(() => {
-    console.log('🏠 HomeScreen useEffect 실행', {
-      connectionStatus,
-      timestamp: new Date().toLocaleTimeString()
-    })
-
-    // WebSocket이 연결되면 데이터 요청
     if (connectionStatus === '연결됨 ✅') {
-      console.log('✅ 연결됨 - 데이터 요청 시작')
-      
-      // 즉시 데이터 요청
       getSensorData()
-
       axios.get(`${SERVER_URL}/motions/today`)
       .then(res => {
         const controlCntList = res.data;
-        const setMotionDetectedCnt = controlCntList.filter(item => item.motionDetected === true).length; 
-        const setFanMotorCnt = controlCntList.filter(item => item.fanMotor === 1).length; 
-        const setWaterPumpCnt = controlCntList.filter(item => item.waterPump === 1).length; 
-        const setLedLightCnt = controlCntList.filter(item => item.ledLight === 1).length; 
         const motionList = controlCntList.filter(item => item.motionDetected === true);
-        const lastMotionDate = motionList.length > 0
-                              ? motionList[0].timestamp
-                              : '-'
         setControlCnt({
-          motionDetectedCnt: setMotionDetectedCnt
-          , fanMotorCnt: setFanMotorCnt
-          , waterPumpCnt: setWaterPumpCnt
-          , ledLightCnt: setLedLightCnt
-          , lastMotionDate
+          motionDetectedCnt: motionList.length,
+          fanMotorCnt: controlCntList.filter(item => item.fanMotor === 1).length,
+          waterPumpCnt: controlCntList.filter(item => item.waterPump === 1).length,
+          ledLightCnt: controlCntList.filter(item => item.ledLight === 1).length,
+          lastMotionDate: motionList.length > 0 ? motionList[0].timestamp : '-'
         })
       })
       .catch(e => console.log(e));
-      
-      // 1분(60초)마다 자동으로 데이터 갱신
       const interval = setInterval(() => {
-        console.log('⏰ 1분 경과 - 데이터 재요청')
         getSensorData()
-
         axios.get(`${SERVER_URL}/motions/today`)
         .then(res => {
           const controlCntList = res.data;
-          const setMotionDetectedCnt = controlCntList.filter(item => item.motionDetected === true).length; 
-          const setFanMotorCnt = controlCntList.filter(item => item.fanMotor === 1).length; 
-          const setWaterPumpCnt = controlCntList.filter(item => item.waterPump === 1).length; 
-          const setLedLightCnt = controlCntList.filter(item => item.ledLight === 1).length; 
           const motionList = controlCntList.filter(item => item.motionDetected === true);
-          const lastMotionDate = motionList.length > 0
-                              ? motionList[0].timestamp
-                              : '-'
           setControlCnt({
-            motionDetectedCnt: setMotionDetectedCnt
-            , fanMotorCnt: setFanMotorCnt
-            , waterPumpCnt: setWaterPumpCnt
-            , ledLightCnt: setLedLightCnt
-            , lastMotionDate
+            motionDetectedCnt: motionList.length,
+            fanMotorCnt: controlCntList.filter(item => item.fanMotor === 1).length,
+            waterPumpCnt: controlCntList.filter(item => item.waterPump === 1).length,
+            ledLightCnt: controlCntList.filter(item => item.ledLight === 1).length,
+            lastMotionDate: motionList.length > 0 ? motionList[0].timestamp : '-'
           })
         })
         .catch(e => console.log(e));
       }, 60000)
-      
-      // 클린업: 컴포넌트 언마운트 시 interval 제거
-      return () => {
-        console.log('🧹 HomeScreen 정리 - interval 제거')
-        clearInterval(interval)
-      }
+      return () => clearInterval(interval)
     }
-  }, [connectionStatus, getSensorData])  // ✅ 의존성 배열에 둘 다 추가
+  }, [connectionStatus, getSensorData])
 
-  // 연결 대기 중이거나 센서 데이터가 없을 때
   if (!sensorData) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={styles.loadingText}>
-            {connectionStatus}
-          </Text>
-          <Text style={styles.loadingSubText}>
-            센서 데이터를 불러오는 중...
-          </Text>
+          <ActivityIndicator size="large" color="#FFC04C" />
+          <Text style={styles.loadingText}>{connectionStatus}</Text>
+          <Text style={styles.loadingSubText}>센서 데이터를 불러오는 중...</Text>
         </View>
       </SafeAreaView>
     )
   }
-
   return (
     <SafeAreaView style={styles.container}>
-      {/* 연결 상태 표시 (선택사항) */}
-      <View style={styles.statusBar}>
-        <Text style={styles.statusText}>{connectionStatus}</Text>
-      </View>
-
-      {/* 상단: 센서 데이터 */}
-      <View style={styles.sensorSectionTop}>
-        <Text style={styles.sectionTitleTop}>센서 데이터</Text>
-        <View style={styles.dataBoxTop}>
-          <View style={styles.dataRow}>
-            <Text style={styles.dataLabel}>🌡️ 온도</Text>
-            <Text style={styles.dataValue}>
-              {sensorData.temperature !== null && sensorData.temperature !== undefined 
-                ? `${sensorData.temperature}°C` 
-                : '측정 중...'}
-            </Text>
-          </View>
-          
-          <View style={styles.dataRow}>
-            <Text style={styles.dataLabel}>💧 습도</Text>
-            <Text style={styles.dataValue}>
-              {sensorData.humidity !== null && sensorData.humidity !== undefined 
-                ? `${sensorData.humidity}%` 
-                : '측정 중...'}
-            </Text>
-          </View>
-          
-          <View style={styles.dataRow}>
-            <Text style={styles.dataLabel}>🌱 토양습도</Text>
-            <Text style={styles.dataValue}>
-              {sensorData.soil_moisture !== null && sensorData.soil_moisture !== undefined 
-                ? `${sensorData.soil_moisture}%` 
-                : '측정 중...'}
-            </Text>
-          </View>
-          
-          <View style={styles.dataRow}>
-            <Text style={styles.dataLabel}>☀️ 조도</Text>
-            <Text style={styles.dataValue}>
-              {sensorData.light_value !== null && sensorData.light_value !== undefined 
-                ? sensorData.light_value 
-                : '측정 중...'}
-            </Text>
-          </View>
-
-          {/* 마지막 업데이트 시간 */}
-          {sensorData.last_update && (
-            <View style={styles.updateTimeContainer}>
-              <Text style={styles.updateTimeText}>
-                마지막 업데이트: {dayjs(sensorData.last_update).format('YYYY-MM-DD HH:mm:ss')}
+      <View style={styles.topSection}>
+        <View style={styles.infoTextContainer}>
+          <MaterialIcons name="info" 
+            size={17} 
+            color="black"
+          />
+          <Text style={styles.updateText}>
+            환경 데이터 마지막 업데이트 : {dayjs(sensorData.last_update).format('YYYY-MM-DD HH:mm:ss')}
+          </Text>
+        </View>
+        <View style={styles.sensorGrid}>
+          <View style={styles.leftColumn}>
+            <View style={[styles.sensorBox, styles.temperatureBox]}>
+              <Text style={[styles.sensorLabel, {color: '#FF3C2B'}]}>온도</Text>
+              <Text style={[styles.sensorValue, styles.temperatureValue, {color: '#d42c1dff'}]}>
+                {sensorData.temperature !== null ? `${parseFloat(sensorData.temperature).toFixed(1)}°C` : '측정 중...'}
               </Text>
             </View>
-          )}
+            <View style={[styles.sensorBox, styles.soilBox]}>
+              <Text style={[styles.sensorLabel, {color: '#2B80FF'}]}>토양</Text>
+              <Text style={[styles.sensorValue, styles.soilValue, {color: '#1865daff'}]}>
+                {sensorData.soil_moisture !== null ? `${parseFloat(sensorData.soil_moisture).toFixed(1)}%` : '측정 중...'}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.rightColumn}>
+            <View style={styles.iotHumiditySection}>
+              <View style={styles.iotHeader}>
+                <Text style={styles.iotText}>IoT&nbsp;&nbsp;
+                  <FontAwesome5 name="wifi" 
+                  size={22} 
+                  color="black" 
+                  />&nbsp;
+                센서 데이터</Text>
+              </View>
+              <View style={[styles.sensorBox, styles.humidityBox]}>
+                <Text style={[styles.sensorLabel, {color: '#E506CF'}]}>습도</Text>
+                <Text style={[styles.sensorValue, styles.humidityValue, {color: '#ca00b6ff'}]}>
+                  {sensorData.humidity !== null ? `${parseFloat(sensorData.humidity).toFixed(1)}%` : '측정 중...'}
+                </Text>
+              </View>
+            </View>
+            
+            <View style={[styles.sensorBox, styles.lightBox]}>
+              <Text style={[styles.sensorLabel, {color: '#18E506'}]}>조도</Text>
+              <Text style={[styles.sensorValue, styles.lightValue, {color: '#2eb921ff'}]}>
+                {sensorData.light_value !== null ? sensorData.light_value : '측정 중...'}
+              </Text>
+            </View>
+          </View>
+        </View>
+        <View style={styles.middleRow}>
+          <View style={styles.welcomeImageContainer}>
+            <Text style={[styles.welcomeText, {color: '#FFB641'}]}>welcome !</Text>
+            <View style={styles.greenhouseImagePlaceholder}>
+              <Image 
+                source={require('@/assets/images/figma-source.png')} 
+                style={styles.greenhouseImage}
+                resizeMode="contain"
+              />
+            </View>
+          </View>
+          <View style={styles.todayColumn}>
+            <View style={styles.todayTitleContainer}>
+              <FontAwesome name="power-off" 
+                size={20} 
+                color="black"
+                style={{marginTop: 3}}
+              />
+              <Text style={styles.todayTitle}> Today 작동 횟수</Text>
+            </View>
+            <View style={[styles.controlBox, styles.ledBoxSmall]}>
+              <Text style={[styles.controlLabel, styles.ledLabel]}>LED</Text>
+              <Text style={[styles.controlValue, styles.ledValue]}>{controlCnt.ledLightCnt}회</Text>
+            </View>
+          </View>
         </View>
       </View>
-
-      {/* 하단: 오늘 작동 횟수 */}
-      <View style={styles.motionSectionBtm}>
-        <Text style={styles.sectionTitleBtm}>오늘 작동 횟수</Text>
-        <View style={styles.dataBoxBtm}>
-          <View style={styles.dataRow}>
-            <Text style={styles.dataLabel}>💦 물펌프</Text>
-            <Text style={styles.dataValue}>{controlCnt.waterPumpCnt}회</Text>
-          </View>
-          
-          <View style={styles.dataRow}>
-            <Text style={styles.dataLabel}>💡 LED</Text>
-            <Text style={styles.dataValue}>{controlCnt.ledLightCnt}회</Text>
-          </View>
-          
-          <View style={styles.dataRow}>
-            <Text style={styles.dataLabel}>🌀 팬</Text>
-            <Text style={styles.dataValue}>{controlCnt.fanMotorCnt}회</Text>
-          </View>
-          
-          <View style={styles.dataRow}>
-            <Text style={styles.dataLabel}>👁️ 모션감지</Text>
-            <Text style={styles.dataValue}>{controlCnt.motionDetectedCnt}회</Text>
-          </View>
-        </View>
-
-        {/* 마지막 업데이트 시간 */}
-        <View>
-          <Text>
-            마지막 업데이트: {dayjs(controlCnt.lastMotionDate).format('YYYY-MM-DD HH:mm:ss')}
+      <View style={styles.motionTimeContainer}>
+        <View style={styles.infoTextContainer}>
+          <MaterialIcons name="info" 
+            size={17} 
+            color="black"
+          />
+          <Text style={styles.motionTimeText}>
+            모션감지센서 마지막 작동 {dayjs(controlCnt.lastMotionDate).format('YYYY-MM-DD HH:mm:ss')}
           </Text>
+        </View>
+      </View>
+      <View style={styles.bottomSection}>
+        <View style={styles.controlGrid}>
+          <View style={[styles.controlBox, styles.waterPumpBoxTall]}>
+            <Text style={[styles.controlLabel, styles.waterPumpLabel]}>Water
+              Pump</Text>
+            <Text style={[styles.controlValue, styles.waterPumpValue]}>{controlCnt.waterPumpCnt}회</Text>
+          </View>
+          <View style={styles.rightControlColumn}>
+            <View style={[styles.controlBox, styles.motionBoxHalf]}>
+              <Text style={[styles.controlLabel, styles.motionLabel]}>Motion{"\n"}Detector</Text>
+              <Text style={[styles.controlValue, styles.motionValue]}>{controlCnt.motionDetectedCnt}회</Text>
+            </View>
+            <View style={[styles.controlBox, styles.fanBoxHalf]}>
+              <Text style={[styles.controlLabel, styles.fanLabel]}>Fan{"\n"}Motor</Text>
+              <Text style={[styles.controlValue, styles.fanValue]}>{controlCnt.fanMotorCnt}회</Text>
+            </View>
+          </View>
         </View>
       </View>
     </SafeAreaView>
@@ -206,12 +187,10 @@ export default HomeScreen
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'white',
     flex: 1,
-    padding: 20
+    backgroundColor: '#f7f7f7ff',
+    padding: 15,
   },
-  
-  // 로딩 화면 스타일
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -219,96 +198,290 @@ const styles = StyleSheet.create({
     gap: 15
   },
   loadingText: {
-    fontSize: 18,
+    fontSize: 28,
     fontWeight: '600',
     color: '#333',
-    textAlign: 'center'
   },
   loadingSubText: {
     fontSize: 14,
     color: '#666',
-    textAlign: 'center'
   },
-
-  // 상태 바
-  statusBar: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-    marginBottom: 15,
-    alignSelf: 'flex-start'
+  topSection: {
+    marginBottom: 12,
   },
-  statusText: {
-    fontSize: 12,
-    color: '#666',
-    fontWeight: '500'
-  },
-
-  // Top 섹션 (센서 데이터)
-  sensorSectionTop: {
-    flex: 1,
-    justifyContent: 'center'
-  },
-  sectionTitleTop: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: '#333'
-  },
-  dataBoxTop: {
-    backgroundColor: '#f5f5f5',
-    padding: 20,
-    borderRadius: 12,
-    gap: 12
-  },
-
-  // 데이터 행 스타일
-  dataRow: {
+  infoTextContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8
+    gap: 5,
+    marginBottom: 8,
   },
-  dataLabel: {
-    fontSize: 16,
-    color: '#555',
-    fontWeight: '500'
+  updateText: {
+    fontSize: 15.5,
+    fontWeight: '800',
+    color: '#000000ff',
   },
-  dataValue: {
-    fontSize: 16,
-    color: '#007AFF',
-    fontWeight: '600'
+  sensorGrid: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 20,
+    height: 300,
   },
-
-  // 업데이트 시간
-  updateTimeContainer: {
-    marginTop: 8,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0'
+  leftColumn: {
+    gap: 8,
+    width: 200,
   },
-  updateTimeText: {
-    fontSize: 12,
-    color: '#999',
-    textAlign: 'center'
+  temperatureBox: {
+    width: 150,
+    height: 146,
+    backgroundColor: '#FDDDDD',
   },
-
-  // Bottom 섹션 (작동 횟수)
-  motionSectionBtm: {
+  soilBox: {
+    width: 200,
+    height: 146,
+    backgroundColor: '#DDE9FF',
+  },
+  rightColumn: {
     flex: 1,
-    justifyContent: 'center'
+    gap: 8,
   },
-  sectionTitleBtm: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: '#333'
+  iotHumiditySection: {
+    height: 146,
+    gap: 8,
+    marginLeft: -50,
   },
-  dataBoxBtm: {
-    backgroundColor: '#f5f5f5',
-    padding: 20,
+  iotHeader: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iotText: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#333',
+  },
+  humidityBox: {
+    height: 70,
+    backgroundColor: '#F5E2FF',
+  },
+  lightBox: {
+    height: 146,
+    backgroundColor: '#E4FFE0',
+  },
+  sensorBox: {
     borderRadius: 12,
-    gap: 12
+    padding: 8,
+  },
+  sensorLabel: {
+    fontSize: 23,
+    fontWeight: '900',
+    color: '#333333ff',
+    position: 'absolute',
+    top: 17,
+    left: 15,
+  },
+  sensorValue: {
+    fontSize: 25,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+  },
+  // 센서 데이터 개별 글자 크기
+  // 온도
+  temperatureValue: {
+    fontSize: 35,
+    lineHeight: 100,
+    marginTop: 30,
+    marginLeft: 0,
+  },
+  // 토양습도
+  soilValue: {
+    fontSize: 32,
+    lineHeight: 100,
+    marginTop: 30,
+    marginRight: 70,
+  },
+  // 습도
+  humidityValue: {
+    fontSize: 32,
+    lineHeight: 45,
+    marginTop: 5,
+    marginRight: -50,
+  },
+  // 조도
+  lightValue: {
+    fontSize: 32,
+    lineHeight: 100,
+    marginTop: 30,
+    marginRight: 80,
+  },
+  middleRow: {
+    flexDirection: 'row',
+    gap: 12,
+    height: 150,
+    marginBottom: 12,
+  },
+  welcomeImageContainer: {
+    width: 200,
+    backgroundColor: '#f7ffaaff',
+    borderWidth: 1,
+    borderColor: '#fffb05ff',
+    borderRadius: 20,
+    padding: 10,
+  },
+  welcomeText: {
+    fontSize: 23,
+    fontWeight: 'bold',
+    color: '#f59f00ff',
+    position: 'absolute',
+    top: 10,
+    left: 20,
+  },
+  greenhouseImagePlaceholder: {
+    width: 170,
+    height: 120,
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'center',
+    marginTop: 25,
+  },
+  placeholderText: {
+    fontSize: 10,
+    color: '#999',
+  },
+  todayColumn: {
+    flex: 1,
+    gap: 6,
+  },
+  todayTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 35,
+  },
+  todayTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  ledBoxSmall: {
+    flex: 1,
+    backgroundColor: '#ffb050ff',
+    borderRadius: 20,
+    borderWidth: 3,
+    borderColor: '#000000ff',
+  },
+  motionTimeContainer: {
+    marginBottom: 10,
+  },
+  motionTimeText: {
+    fontSize: 15.5,
+    fontWeight: '800',
+    color: '#000000ff',
+  },
+  bottomSection: {
+    flex: 1,
+  },
+  controlGrid: {
+    flexDirection: 'row',
+    gap: 10,
+    height: 200,
+  },
+  controlBox: {
+    borderRadius: 20,
+    padding: 2,
+  },
+  controlLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    position: 'absolute',
+  },
+  // 각 라벨의 개별 크기와 위치
+  ledLabel: {
+    fontSize: 28,
+    top: 10,
+    left: 15,
+    color: '#000',
+  },
+  waterPumpLabel: {
+    fontSize: 28,
+    top: 13,
+    left: 15,
+    color: '#000',
+  },
+  motionLabel: {
+    fontSize: 23,
+    top: 15,
+    left: 15,
+    color: '#000',
+  },
+  fanLabel: {
+    fontSize: 23,
+    top: 15,
+    left: 15,
+    color: '#000',
+  },
+  controlValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+    lineHeight: 176,
+  },
+  // 제어 횟수 개별 글자 크기
+  // LED 값
+  ledValue: {
+    fontSize: 40,
+    lineHeight: 80,
+    marginTop: 20,
+    marginLeft: 60,
+  },
+  // 물펌프 값
+  waterPumpValue: {
+    fontSize: 40,
+    lineHeight: 80,
+    marginTop: 90,
+    marginLeft: -50,
+  },
+  // 모션감지 값
+  motionValue: {
+    fontSize: 40,
+    lineHeight: 80,
+    marginTop: 2,
+    marginLeft: 100,
+  },
+  // 팬 값
+  fanValue: {
+    fontSize: 40,
+    lineHeight: 80,
+    marginTop: 2,
+    marginLeft: 100,
+  },
+  // 각 박스의 개별 색상 및 테두리
+  waterPumpBoxTall: {
+    width: '39%',
+    height: '100%',
+    backgroundColor: '#3ce2ffff',
+    borderWidth: 3,
+    borderColor: '#000000ff',
+  },
+  rightControlColumn: {
+    flex: 1,
+    gap: 10,
+  },
+  motionBoxHalf: {
+    height: '48%',
+    backgroundColor: '#69fa75ff',
+    borderWidth: 3,
+    borderColor: '#000000ff',
+  },
+  fanBoxHalf: {
+    height: '48%',
+    backgroundColor: '#fdb8ffff',
+    borderWidth: 3,
+    borderColor: '#000000ff',
+  },
+  greenhouseImage: {
+    width: '100%',
+    height: '100%',
   }
 })
