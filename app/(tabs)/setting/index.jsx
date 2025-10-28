@@ -1,26 +1,34 @@
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Switch, Text, View, Modal, TextInput, Alert, Button } from 'react-native'
 import React, { useState } from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, SWITCH_THEME } from '../../../constants/colorConstant'
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Octicons from '@expo/vector-icons/Octicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import useWebSocket from '../../../hooks/useWebSocket';
 
 const SettingHomeScreen = () => {
-  //공유 버튼 슬라이드 스위치
-  const [isEnabled, setIsEnabled] = useState(false);
+  //WS 훅 불러오기
+  const {updateSettings} = useWebSocket();
 
   //모달 상태
-  const [modalVisivle, setModalVisible] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
   const [selectedSetting, setSelectedSetting] = useState(null);
   const [inputValue, setInputValue] = useState('');
 
   //설정 클릭 시 모달 열기
   const openModal = (type) => {
     setSelectedSetting(type);
-    setInputValue(setting[type].value.toString());
-    setModalVisible(ture);
+    setInputValue(settings[type].value.toString());
+    setModalVisible(true);
   }
+
+  //현재 기준값
+    const [settings, setSettings] = useState({
+    tempt: { label: '온도', value: 26, unit: '°C' },
+    illum: { label: '조도', value: 150},
+    humdt: { label: '습도', value: 34, unit: '%'}
+  });
 
   // 값 저장
   const saveValue = () => {
@@ -32,31 +40,44 @@ const SettingHomeScreen = () => {
       Alert.alert('오류', '숫자를 입력해주세요');
       return;
     }
-
-    if (numValue < setting.min || numValue > setting.max) {
-      Alert.alert('오류', `${setting.min}~${setting.max} 범위의 값을 입력해주세요`);
-      return;
-    }
-  }
   
-  // 상태 업데이트
-  setSettings(prev => ({
-    ...prev,
-    [selectedSetting]: { ...prev[selectedSetting], value: numValue }
-  }));
+    // 상태 업데이트
+    setSettings(prev => ({
+      ...prev,
+      [selectedSetting]: { ...prev[selectedSetting], value: numValue }
+    }));
+
+    // 서버에 전송 WS
+    updateSettings(selectedSetting, numValue);
+
+    //성공 메시지
+    Alert.alert('알림', `${setting.label} 기준값이 ${numValue}${setting.unit}로 변경되었습니다.`);
+
+    //모달 닫기
+    setModalVisible(false);
+  }
 
   //슬라이드로 스위치를 on/off함
   //previousState => !previousState -> 이전 상태의 반대값을 반환하는 코드
   //const toggleSwitch = () => {setIsEnabled(!isEnabled)}; 와 같음
   const toggleSwitch = () => setIsEnabled(previousState => !previousState);
 
+  // 모션 감지 on/off 상태
+  const [motionEnabled, setMotionEnabled] = useState(false);
+
+  //공유 버튼 슬라이드 스위치
+  const [isEnabled, setIsEnabled] = useState(false);
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <Text style={styles.title}>Settings</Text>
+
       <View style={styles.container}>
-        <Pressable>
-          {/* 온도 */}
+        {/* 온도 */}
+        <Pressable onPress={() => {
+            console.log('Pressable 클릭됨!');  // 먼저 이것만 확인
+            openModal('tempt')
+        }}>
           <View style={styles.mainContainer}>
             <View style={styles.leftSection}>
               <View style={styles.iconCircle}>
@@ -65,12 +86,16 @@ const SettingHomeScreen = () => {
               <Text style={styles.content}>온도</Text>
             </View>
             <View style={styles.rightSection}>
-              <Text style={styles.status}>26도</Text>
+              <Text style={styles.status}>{settings.tempt.value}{settings.tempt.unit}</Text>
               <Ionicons name="chevron-forward" size={20} color={colors.GRAY_500} />
             </View>
           </View>
-          <View style={styles.divider} />
-          {/* 조도 */}
+        </Pressable>
+
+        <View style={styles.divider} />
+
+        {/* 조도 */}
+        <Pressable onPress={() => openModal('illum')}>
           <View style={styles.mainContainer}>
             <View style={styles.leftSection}>
               <View style={styles.iconCircle}>
@@ -79,12 +104,16 @@ const SettingHomeScreen = () => {
               <Text style={styles.content}>조도</Text>
             </View>
             <View style={styles.rightSection}>
-              <Text style={styles.status}>150</Text>
+              <Text style={styles.status}>{settings.illum.value}</Text>
               <Ionicons name="chevron-forward" size={20} color={colors.GRAY_500} />
             </View>
           </View>
-          <View style={styles.divider} />
-          {/* 습도 */}
+        </Pressable>
+
+        <View style={styles.divider} />
+
+        {/* 습도 */}
+        <Pressable onPress={() => openModal('humdt')}>
           <View style={styles.mainContainer}>
             <View style={styles.leftSection}>
               <View style={styles.iconCircle}>
@@ -93,25 +122,32 @@ const SettingHomeScreen = () => {
               <Text style={styles.content}>습도</Text>
             </View>
             <View style={styles.rightSection}>
-              <Text style={styles.status}>34%</Text>
-              <Ionicons name="chevron-forward" size={20} color={colors.GRAY_500} />
-            </View>
-          </View>
-          <View style={styles.divider} />
-          {/* 모션 감지 */}
-          <View style={styles.mainContainer}>
-            <View style={styles.leftSection}>
-              <View style={styles.iconCircle}>
-                <Octicons name="alert-fill" size={24} color={colors.RED} />
-              </View>
-              <Text style={styles.content}>모션 감지</Text>
-            </View>
-            <View style={styles.rightSection}>
-              <Text style={styles.status}>켬</Text>
+              <Text style={styles.status}>{settings.humdt.value}{settings.humdt.unit}</Text>
               <Ionicons name="chevron-forward" size={20} color={colors.GRAY_500} />
             </View>
           </View>
         </Pressable>
+
+        <View style={styles.divider} />
+
+        {/* 모션 감지 */}
+        <View style={styles.mainContainer}>
+          <View style={styles.leftSection}>
+            <View style={styles.iconCircle}>
+              <Octicons name="alert-fill" size={24} color={colors.RED} />
+            </View>
+            <Text style={styles.content}>모션 감지</Text>
+          </View>
+          <View style={styles.rightSection}>
+            <Switch
+              trackColor={SWITCH_THEME.trackColor}
+              thumbColor={motionEnabled ? SWITCH_THEME.thumbColor.true : SWITCH_THEME.thumbColor.false}
+              ios_backgroundColor={SWITCH_THEME.iosBackgroundColor}
+              onValueChange={() => setMotionEnabled(prev => !prev)}
+              value={motionEnabled}
+            />
+          </View>
+        </View>
       </View>
       <Text style={styles.explain}>사용자가 설정한 수치에 도달하면 연결된 기기가 자동으로 작동하여 실내 환경을 관리합니다.</Text>
       <View style={styles.container}>
@@ -127,11 +163,39 @@ const SettingHomeScreen = () => {
         </View>
       </View>
       <Text style={styles.explain}>현재 공유되고 있는 사용자의 기기와 웹에 설정값이 동기화됩니다. 버튼을 비활성화할 경우 값을 설정할 수 없습니다.</Text>
-    </SafeAreaView>
-  )
-}
 
-export default SettingHomeScreen
+      {/* 모달 영역 */}
+       <Modal
+        visible={modalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>
+              {settings[selectedSetting]?.label} 기준값 설정
+            </Text>
+            <TextInput
+              style={styles.input}
+              value={inputValue}
+              onChangeText={setInputValue}
+              keyboardType="numeric"
+              placeholder="숫자를 입력하세요"
+            />
+            <View style={styles.modalButtons}>
+              <Button title="저장" onPress={saveValue} />
+              <View style={{ width: 10 }} />
+              <Button title="취소" color="gray" onPress={() => setModalVisible(false)} />
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
+  );
+};
+
+export default SettingHomeScreen;
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -192,5 +256,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     fontSize : 13,
     marginBottom : 30
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContainer: {
+    width: '80%',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: colors.GRAY_400,
+    borderRadius: 6,
+    padding: 10,
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
   }
 })
