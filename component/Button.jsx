@@ -2,7 +2,11 @@ import { StyleSheet, Text, View } from 'react-native'
 import { Pressable } from 'react-native'
 import { colors } from '../constants/colorConstant'
 
-const Button = ({title='버튼', size='large', onPress}) => {
+const Button = ({
+  title='버튼', 
+  size='large', 
+  onPress
+}) => {
   return (
     <Pressable
       style={({pressed}) => [
@@ -10,9 +14,9 @@ const Button = ({title='버튼', size='large', onPress}) => {
         styles[size],
         pressed && styles.pressed
       ]}
-      onPress={() => onPress()}
+      onPress={onPress}
     >
-      <Text>{title}</Text>
+      <Text style={styles.text}>{title}</Text>
     </Pressable>
   )
 }
@@ -28,13 +32,18 @@ const styles = StyleSheet.create({
   },
   large : {
     width : '100%',
-    height : 34
+    height : 54
   },
   normal : {
-    width : '70%',
-    height : 30
+    width : 'auto',
+    height : 44
+  },
+  small: {     
+    width: 'auto',
+    minWidth: 80,
+    height: 36,
   },
   pressed : {
-    opacity : 0.8
+    opacity : 0.7
   }
 })

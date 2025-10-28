@@ -1,3 +1,17 @@
+
+import { StyleSheet, Text, View, TextInput } from 'react-native'
+import React, { useState } from 'react'
+import { colors } from '../constants/colorConstant';
+
+const Input = ({
+  label='', 
+  isPw=false,
+  value='',
+  onChangeText,
+  placeholder='',
+  editable=true,
+  ...props
+}) => {
 import { StyleSheet, Text, TextInput, View } from 'react-native'
 import { useState } from 'react'
 import { colors } from '../constants/colorConstant';
@@ -16,6 +30,12 @@ const Input = ({label='',  isPw=false, ...props}) => {
         onFocus={() => setIsFocus(true)}
         //focus를 잃을 때 실행 함수
         onBlur={() => setIsFocus(false)}
+
+        value={value}
+        onChangeText={onChangeText} //타이핑 시 
+        placeholder={placeholder}
+        secureTextEntry={isPw} // 비밀번호 
+        editable={editable} // 수정 가능 여부
         {...props}
       />
     </View>
@@ -39,5 +59,9 @@ const styles = StyleSheet.create({
   },
   focused : {
     borderColor : colors.BLACK
+  },
+  disabled : {
+    backgroundColor : colors.GRAY_100,
+    color : colors.GRAY_500
   }
 })
