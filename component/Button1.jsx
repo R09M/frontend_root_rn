@@ -48,12 +48,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   small: {
-    width: '50%',
-    height: 30,
+    width: '23%',
+    height: 46,
   },
   medium: {
-    width: '70%',
-    height: 40,
+    width: '60%',
+    height: 46,
   },
   large: {
     width: '100%',

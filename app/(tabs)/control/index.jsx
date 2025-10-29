@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, Text, Switch, FlatList } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
+import React, { useCallback, useState } from 'react';
+import { View, StyleSheet, Pressable, Text, Switch, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import useWebSocket from '../../../hooks/useWebSocket';
 import Header from '../../../component/layout/Header';
 import ControlCard from '../../../component/card/ControlCard';
 import { colors } from '../../../constants/colorConstant';
+import { useFocusEffect, useRouter } from 'expo-router';
+
 
 // 제어할 장치 정보를 배열로 정의
 const CONTROL_ITEMS = [
@@ -14,6 +17,32 @@ const CONTROL_ITEMS = [
 ];
 
 const ControlHomeScreen = () => {
+
+
+
+  // 로그인 페이지 이동을 위해 useRouter사용
+  const router = useRouter();
+
+ {/*
+
+  // 로그인 여부 확인 후, 로그인정보가 null이면 로그인 페이지로 이동
+  useFocusEffect(
+    useCallback(()=>{
+        const getLoginInfo = async () =>{   
+        const loginInfo = await SecureStore.getItemAsync('loginInfo');
+        const result = JSON.parse(loginInfo);
+        console.log('로그인 데이터=', loginInfo);
+        if(result === null){
+          router.replace('/auth/login');  
+        }
+      }
+      getLoginInfo();
+    },[])
+  )
+
+*/}
+
+
   const { controlLED, controlPump, controlFan, setMode } = useWebSocket(); // 웹소켓 훅 호출
 
   const [mode, setModeState] = useState('auto'); // 현재 모드 상태 ('auto' | 'manual')
@@ -46,6 +75,17 @@ const ControlHomeScreen = () => {
       return { ...prev, [id]: newValue }; // 상태 업데이트
     });
   };
+
+  // 로그아웃 기능 구현
+  const logout = async() => {
+    // SecureStore에 저장된 로그인 정보를 삭제하는 것
+    await SecureStore.deleteItemAsync('loginInfo');
+    // 로그아웃 성공후 기존에 존재하던 모든화면 Stack을 제거
+    if(router.canDismiss()){
+       router.dismissAll(); 
+    }
+    router.replace('/');  // HomeScreen으로 교체이동시킴
+  }
 
   // FlatList에서 각 장치 아이템 렌더링
   const renderItem = ({ item }) => (
@@ -84,6 +124,16 @@ const ControlHomeScreen = () => {
           trackColor={{ false: colors.GRAY_300, true: colors.BLUE_500 }} // 트랙 색상
           thumbColor={colors.WHITE} // 스위치 동그라미 색상
         />
+      </View>
+
+      {/* 로그인페이지 이동 & 로그아웃 버튼 */}
+      <View style={styles.loginout}>
+        <Pressable onPress={()=>router.push('/auth/login')}>
+          <Text> 로그인 페이지로 이동   | </Text>  
+        </Pressable>
+        <Pressable onPress={()=> logout()}>
+          <Text>   로그아웃</Text>  
+        </Pressable>
       </View>
 
       <FlatList
@@ -132,4 +182,12 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     gap: 16,
   },
+
+  loginout : {
+    paddingTop : 30,
+    paddingHorizontal : 14,
+    flexDirection : 'row',
+    justifyContent : 'center',
+  }
 });
+
