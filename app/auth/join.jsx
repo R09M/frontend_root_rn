@@ -117,7 +117,7 @@ const JoinScreen = () => {
             color="#9b3b16ff" 
             onPress={() => router.replace('/')} />
         </View>
-
+햣
       </SafeAreaView>
     </TouchableWithoutFeedback>
   )
