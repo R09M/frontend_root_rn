@@ -1,6 +1,5 @@
-// React 및 React Native 핵심 라이브러리 import
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, ScrollView, ActivityIndicator, TouchableOpacity, Image, Switch, Animated } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, Switch, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
@@ -9,26 +8,41 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
-// 커스텀 컴포넌트 및 훅 import
+// 커스텀 컴포넌트
 import Header from '../../../component/layout/Header';
-import useWebSocket from '../../../hooks/useWebSocket';
-import useCheckLogin from '../../../hooks/useCheckLogin';
 import { useAppContext } from '../../../context/AppContext';
 
 // 외부 라이브러리 import
-import axios from 'axios';
 import dayjs from 'dayjs';
 
 // 상수 import
-import { SERVER_URL } from '../../../constants/appConst';
 import { colors } from '../../../constants/colorConstant';
+
+// ============================================
+// Mock 데이터
+// ============================================
+const mockSensorData = {
+  temperature: 24.7,
+  humidity: 60.5,
+  soil_moisture: 31.8,
+  light_value: 888,
+  last_update: new Date(),
+};
+
+const mockControlCnt = {
+  motionDetectedCnt: 7,
+  fanMotorCnt: 15,
+  waterPumpCnt: 4,
+  ledLightCnt: 9,
+  lastMotionDate: new Date(),
+};
 
 // ============================================
 // 다국어 번역 데이터 (한국어, 영어, 일본어, 중국어)
 // ============================================
 const translations = {
   ko: {
-    title: '홈 화면',
+    title: '홈 화면 (Mock)',
     welcome: '환영합니다',
     loading: '센서 데이터를 불러오는 중...',
     envUpdate: '마지막 업데이트',
@@ -46,7 +60,7 @@ const translations = {
     language: 'Language',
   },
   en: {
-    title: 'Home',
+    title: 'Home (Mock)',
     welcome: 'Welcome',
     loading: 'Loading sensor data...',
     envUpdate: 'Data Last Update',
@@ -64,7 +78,7 @@ const translations = {
     language: 'Language',
   },
   ja: {
-    title: 'ホーム',
+    title: 'ホーム (Mock)',
     welcome: 'こんにちは',
     loading: 'センサーデータを読み込み中...',
     envUpdate: '最終更新',
@@ -82,7 +96,7 @@ const translations = {
     language: 'Language',
   },
   zh: {
-    title: '主页',
+    title: '主页 (Mock)',
     welcome: '欢迎',
     loading: '正在加载传感器数据...',
     envUpdate: '最后更新',
@@ -111,17 +125,14 @@ const languageConfig = {
 
 /**
  * ============================================
- * HomeScreen 컴포넌트
+ * HomeMockScreen 컴포넌트
  * ============================================
  */
-const HomeScreen = () => {
+const HomeMockScreen = () => {
   // ============================================
   // 훅 및 상태 관리
   // ============================================
   const router = useRouter();
-  
-  // 로그인 체크
-  useCheckLogin();
 
   // Context에서 다크모드와 언어 가져오기
   const { language, setLanguage, isDarkMode, setIsDarkMode } = useAppContext();
@@ -129,21 +140,9 @@ const HomeScreen = () => {
   // 현재 선택된 언어의 번역 객체
   const t = translations[language];
   
-  // WebSocket 훅
-  const { 
-    sensorData,
-    getSensorData,
-    connectionStatus
-  } = useWebSocket();
-
-  // 제어 장치 작동 횟수 상태
-  const [controlCnt, setControlCnt] = useState({
-    motionDetectedCnt: 0,
-    fanMotorCnt: 0,
-    waterPumpCnt: 0,
-    ledLightCnt: 0,
-    lastMotionDate: '-'
-  });
+  // Mock 데이터 사용
+  const sensorData = mockSensorData;
+  const controlCnt = mockControlCnt;
 
   // 언어 선택 팝업 상태
   const [isLanguageExpanded, setIsLanguageExpanded] = useState(false);
@@ -217,67 +216,6 @@ const HomeScreen = () => {
     setLanguage(lang);
     toggleLanguageSelector();
   };
-
-  // ============================================
-  // 데이터 로딩 및 자동 갱신 (1분마다)
-  // ============================================
-  useEffect(() => {
-    if (connectionStatus === '연결됨 ✅') {
-      getSensorData();
-      
-      axios.get(`${SERVER_URL}/motions/today`)
-      .then(res => {
-        const controlCntList = res.data;
-        const motionList = controlCntList.filter(item => item.motionDetected === true);
-        
-        setControlCnt({
-          motionDetectedCnt: motionList.length,
-          fanMotorCnt: controlCntList.filter(item => item.fanMotor === 1).length,
-          waterPumpCnt: controlCntList.filter(item => item.waterPump === 1).length,
-          ledLightCnt: controlCntList.filter(item => item.ledLight === 1).length,
-          lastMotionDate: motionList.length > 0 ? motionList[0].timestamp : '-'
-        });
-      })
-      .catch(e => console.log(e));
-
-      const interval = setInterval(() => {
-        getSensorData();
-        
-        axios.get(`${SERVER_URL}/motions/today`)
-        .then(res => {
-          const controlCntList = res.data;
-          const motionList = controlCntList.filter(item => item.motionDetected === true);
-          
-          setControlCnt({
-            motionDetectedCnt: motionList.length,
-            fanMotorCnt: controlCntList.filter(item => item.fanMotor === 1).length,
-            waterPumpCnt: controlCntList.filter(item => item.waterPump === 1).length,
-            ledLightCnt: controlCntList.filter(item => item.ledLight === 1).length,
-            lastMotionDate: motionList.length > 0 ? motionList[0].timestamp : '-'
-          });
-        })
-        .catch(e => console.log(e));
-      }, 60000);
-      
-      return () => clearInterval(interval);
-    }
-  }, [connectionStatus, getSensorData]);
-
-  // ============================================
-  // 로딩 화면
-  // ============================================
-  if (!sensorData) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <Header title={t.title} />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#1452ff" />
-          <Text style={styles.loadingText}>{connectionStatus}</Text>
-          <Text style={styles.loadingSubText}>{t.loading}</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   // 현재 선택된 언어를 제외한 나머지 언어들
   const otherLanguages = Object.keys(languageConfig).filter(lang => lang !== language);
@@ -617,28 +555,13 @@ const HomeScreen = () => {
   );
 };
 
-export default HomeScreen;
+export default HomeMockScreen;
 
 // 스타일
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.GRAY_200,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 15,
-  },
-  loadingText: {
-    fontSize: 28,
-    fontWeight: '600',
-    color: '#333',
-  },
-  loadingSubText: {
-    fontSize: 14,
-    color: '#666',
   },
   scrollView: {
     flex: 1,
