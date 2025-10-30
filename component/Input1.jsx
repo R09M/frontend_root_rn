@@ -1,7 +1,7 @@
 import { StyleSheet, TextInput, View } from 'react-native'
 import { useState } from 'react'
 
-const Input = ({
+const Input1 = ({
   label = '',
   color = 'black',                       // 배경색
   textColor = 'rgba(26, 155, 65, 1)',  // 글자색 props
@@ -23,7 +23,7 @@ const Input = ({
 
   // 사이즈별 높이 설정
   const sizeStyles = {
-    small: { height: 36 },
+    small: { height: 40 },
     medium: { height: 44 },
     large: { height: 46 },
   }
@@ -44,7 +44,10 @@ const Input = ({
             borderRadius,
             fontSize,
             paddingHorizontal: padding,
-            ...sizeStyles[size],
+           ...sizeStyles[size],
+            width: '100%',
+          //  flexGrow: 0,
+          //  flexShrink: 1,
           },
           style, // 외부 style을 나중에 적용
           // focus 상태일 때 borderColor를 강제로 다시 적용
@@ -61,7 +64,7 @@ const Input = ({
   )
 }
 
-export default Input
+export default Input1
 
 const styles = StyleSheet.create({
   input: {

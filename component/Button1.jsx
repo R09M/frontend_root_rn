@@ -2,7 +2,7 @@ import { StyleSheet, Text } from 'react-native'
 import { Pressable } from 'react-native'
 
 
-const Button = ({
+const Button1 = ({
   title = '버튼',
   color = 'green',
   textColor = '#fff',
@@ -40,7 +40,7 @@ const Button = ({
   )
 }
 
-export default Button
+export default Button1
 
 const styles = StyleSheet.create({
   base: {

@@ -1,7 +1,7 @@
 import Button1 from '@/component/Button1';
 import Input1 from '@/component/Input1';
 import { useRouter } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { Keyboard, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const ConfirmScreen = () => {
@@ -9,80 +9,64 @@ const ConfirmScreen = () => {
   const router = useRouter()
 
   return (
-    <SafeAreaView style={styles.container}>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss()}>
+      <SafeAreaView style={styles.container}>
 
-      {/* 안내 문구 */}
-      <View style={styles.titleBox}>
-        <Text style={styles.titleText}>회원가입을 위해</Text>
-        <Text style={styles.titleHighlight}>본인 인증이 꼭</Text>
-        <Text style={styles.titleHighlight}>필요해요!</Text>
-      </View>
-
-      {/* 이름 입력 */}
-      <Input1
-        placeholder="이름(핸드폰 가입자명) 입력"
-        color='rgba(245, 245, 245, 1)'
-        borderColor='rgba(220, 220, 220, 1)'
-        focusBorderColor="green"
-        textColor="black"
-        placeholderColor="gray"
-        fontSize={16}
-        style={[styles.input, styles.fixedInput]}
-      />
-
-      {/* 생년월일 + 뒷자리 */}
-      <View style={styles.birthRow}>
-        <View style={{ flex: 1 }}>
-          <Input1
-            placeholder="생년월일 6자리"
-            color='rgba(245, 245, 245, 1)'
-            borderColor='rgba(220, 220, 220, 1)'
-            focusBorderColor="green"
-            textColor="black"
-            placeholderColor="gray"
-            fontSize={16}
-            style={[styles.input, styles.fixedInput]}
-          />
+        {/* 안내 문구 */}
+        <View style={styles.titleBox}>
+          <Text style={styles.titleText}>회원가입을 위해</Text>
+          <Text style={styles.titleHighlight}>본인 인증이 꼭</Text>
+          <Text style={styles.titleHighlight}>필요해요!</Text>
         </View>
-        <Text style={styles.hyphen}> - </Text>
-        <Text style={styles.hyphen}>●●●●●●●</Text>
-      </View>
 
-      {/* 통신사 선택 */}
-      <View style={styles.carrierRow}>
-        <Button1 title="SKT" size="small" />
-        <Button1 title="KT" size="small" />
-        <Button1 title="LG U+" size="small" />
-        <Button1 title="알뜰폰" size="small" />
-      </View>
-
-      {/* 전화번호 입력 */}
-      <View style={styles.phoneRow}>
-        <Text style={styles.phonePrefix}>010</Text>
-        <Text style={styles.hyphen}>-</Text>
-        <View style={{ flex: 1 }}>
-          <Input1
-            placeholder="'-' 없이 핸드폰 숫자만 입력"
-            color='rgba(245, 245, 245, 1)'
-            borderColor='rgba(220, 220, 220, 1)'
-            focusBorderColor="green"
-            textColor="black"
-            placeholderColor="gray"
-            fontSize={16}
-            style={[styles.input, styles.fixedInput]}
-          />
-        </View>
-      </View>
-
-      {/* 전송 버튼 */}
-      <View style={styles.sendButton}>
-        <Button1 title="본인인증 확인요청" 
-          color="#9b3b16ff" 
-          onPress={() => router.replace('/auth/join')}
+        {/* 이름 입력 */}
+        <Input1
+          placeholder="이름(핸드폰 가입자명) 입력"
+          color='rgba(245, 245, 245, 1)'
+          borderColor='rgba(220, 220, 220, 1)'
+          focusBorderColor="green"
+          textColor="black"
+          placeholderColor="gray"
+          fontSize={16}
+          style={[styles.input, styles.fixedInput]}
         />
-      </View>
 
-    </SafeAreaView>
+        {/* 통신사 선택 */}
+        <View style={styles.carrierRow}>
+          <Button1 title="SKT" size="small" />
+          <Button1 title="KT" size="small" />
+          <Button1 title="LG U+" size="small" />
+          <Button1 title="알뜰폰" size="small" />
+        </View>
+
+        {/* 전화번호 입력 */}
+        <View style={styles.phoneRow}>
+          <Text style={styles.phonePrefix}>010</Text>
+          <Text style={styles.hyphen}>-</Text>
+          <View style={{ flex: 1 }}>
+            <Input1
+              placeholder="'-' 없이 핸드폰 숫자만 입력"
+              color='rgba(245, 245, 245, 1)'
+              borderColor='rgba(220, 220, 220, 1)'
+              focusBorderColor="green"
+              textColor="black"
+              placeholderColor="gray"
+              fontSize={16}
+              style={[styles.input, styles.fixedInput]}
+            />
+          </View>
+        </View>
+
+        {/* 전송 버튼 */}
+        <View style={styles.sendButton}>
+          <Button1 title="본인인증 완료" 
+            color="#9b3b16ff" 
+            onPress={() => router.replace('/auth/join')}
+          />
+        </View>
+
+      </SafeAreaView>
+    </TouchableWithoutFeedback>
   );
 };
 
@@ -116,12 +100,6 @@ const styles = StyleSheet.create({
     width: '100%',
     flexShrink: 0, 
     minHeight: 48, 
-  },
-  birthRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 20,
   },
   hyphen: {
     fontSize: 20,
