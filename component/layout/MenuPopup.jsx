@@ -2,17 +2,20 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { colors } from '../../constants/colorConstant';
+import { useAppContext } from '../../context/AppContext';
 
 const { width, height } = Dimensions.get('window');
 
 const MenuPopup = ({ options, onClose }) => {
+  const { isDarkMode } = useAppContext();
+
   return (
     <View style={styles.overlay}>
       {/* 배경 클릭 시 팝업 닫기 */}
       <TouchableOpacity style={styles.backdrop} onPress={onClose} />
 
       {/* 실제 메뉴 */}
-      <View style={styles.menuPopup}>
+      <View style={[styles.menuPopup, isDarkMode && styles.menuPopupDark]}>
         {options.map((opt, idx) => (
           <TouchableOpacity
             key={idx}
@@ -23,7 +26,11 @@ const MenuPopup = ({ options, onClose }) => {
             style={styles.menuItemContainer}
           >
             <Text
-              style={[styles.menuItem, opt.color ? { color: opt.color } : null]}
+              style={[
+                styles.menuItem,
+                isDarkMode && styles.menuItemDark,
+                opt.color ? { color: opt.color } : null
+              ]}
             >
               {opt.label}
             </Text>
@@ -67,6 +74,10 @@ const styles = StyleSheet.create({
     maxWidth: 200,
     minWidth: 150,
   },
+  menuPopupDark: {
+    backgroundColor: '#3D3D3D',
+    borderColor: '#505050',
+  },
   menuItemContainer: {
     paddingVertical: 0,
   },
@@ -75,5 +86,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     fontSize: 14,
     color: colors.GRAY_700,
+  },
+  menuItemDark: {
+    color: '#FFFFFF',
   },
 });

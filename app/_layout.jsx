@@ -1,17 +1,13 @@
-import { StyleSheet, Text, View } from 'react-native'
-import React from 'react'
-import { Stack } from 'expo-router'
+import { Stack } from 'expo-router';
+import { AppProvider } from '../context/AppContext';
 
-const RootLayout = () => {
+export default function RootLayout() {
   return (
-    <Stack 
-      screenOptions={{
-        headerShown: false
-      }}
-    />
-  )
+    <AppProvider>
+      <Stack>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="auth" options={{ headerShown: false }} />
+      </Stack>
+    </AppProvider>
+  );
 }
-
-export default RootLayout
-
-const styles = StyleSheet.create({})

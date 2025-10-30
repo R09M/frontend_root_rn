@@ -5,10 +5,33 @@ import { colors } from '../../constants/colorConstant';
 import MenuPopup from './MenuPopup';
 import * as SecureStore from 'expo-secure-store';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { useAppContext } from '../../context/AppContext';
+
+// 다국어 번역 추가
+const translations = {
+  ko: {
+    myInfo: '내 정보',
+    logout: '로그아웃',
+  },
+  en: {
+    myInfo: 'My Info',
+    logout: 'Logout',
+  },
+  ja: {
+    myInfo: 'マイ情報',
+    logout: 'ログアウト',
+  },
+  zh: {
+    myInfo: '我的信息',
+    logout: '登出',
+  },
+};
 
 const Header = ({ title, onBackPress }) => {
   const [menuVisible, setMenuVisible] = useState(false);
   const router = useRouter();
+  const { language, isDarkMode } = useAppContext();
+  const t = translations[language];
 
   useFocusEffect(
     useCallback(() => {
@@ -30,26 +53,26 @@ const Header = ({ title, onBackPress }) => {
   };
 
   const menuOptions = [
-    { label: '내 정보', onPress: () => alert('내 정보 클릭') },
-    { label: '로그아웃', onPress: logout, color: 'red' },
+    { label: t.myInfo, onPress: () => alert(t.myInfo) },
+    { label: t.logout, onPress: logout, color: 'red' },
   ];
 
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, isDarkMode && styles.headerDark]}>
       {/* 뒤로가기 버튼 */}
       <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
-        <Text style={styles.backButtonText}>‹</Text>
+        <Text style={[styles.backButtonText, isDarkMode && styles.textDark]}>‹</Text>
       </TouchableOpacity>
 
       {/* 타이틀 */}
-      <Text style={styles.headerTitle}>{title}</Text>
+      <Text style={[styles.headerTitle, isDarkMode && styles.textDark]}>{title}</Text>
 
       {/* 메뉴 버튼 */}
       <TouchableOpacity
         style={styles.menuButton}
         onPress={() => setMenuVisible(!menuVisible)}
       >
-        <Text style={styles.menuButtonText}>⋮</Text>
+        <Text style={[styles.menuButtonText, isDarkMode && styles.textDark]}>⋮</Text>
       </TouchableOpacity>
 
       {/* 메뉴 팝업 */}
@@ -75,6 +98,10 @@ const styles = StyleSheet.create({
     position: 'relative',
     zIndex: 10,
   },
+  headerDark: {
+    backgroundColor: '#2D2D2D',
+    borderBottomColor: '#404040',
+  },
   backButton: {
     width: 40,
     height: 40,
@@ -99,5 +126,8 @@ const styles = StyleSheet.create({
   menuButtonText: {
     fontSize: 24,
     color: colors.GRAY_700,
+  },
+  textDark: {
+    color: '#FFFFFF',
   },
 });

@@ -1,18 +1,31 @@
+// React 및 React Native 핵심 라이브러리 import
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, ScrollView, ActivityIndicator, TouchableOpacity, Image, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+
+// 아이콘 라이브러리 import
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+
+// 커스텀 컴포넌트 및 훅 import
 import Header from '../../../component/layout/Header';
 import useWebSocket from '../../../hooks/useWebSocket';
+import useCheckLogin from '../../../hooks/useCheckLogin';
+import { useAppContext } from '../../../context/AppContext';
+
+// 외부 라이브러리 import
 import axios from 'axios';
 import dayjs from 'dayjs';
+
+// 상수 import
 import { SERVER_URL } from '../../../constants/appConst';
 import { colors } from '../../../constants/colorConstant';
 
-// 다국어 번역 데이터
+// ============================================
+// 다국어 번역 데이터 (한국어, 영어, 일본어, 중국어)
+// ============================================
 const translations = {
   ko: {
     title: '홈 화면',
@@ -84,18 +97,34 @@ const translations = {
   },
 };
 
+/**
+ * ============================================
+ * HomeScreen 컴포넌트
+ * ============================================
+ */
 const HomeScreen = () => {
+  // ============================================
+  // 훅 및 상태 관리
+  // ============================================
   const router = useRouter();
-  const [language, setLanguage] = useState('ko'); // 기본값: 한국어
-  const [isDarkMode, setIsDarkMode] = useState(false); // 다크모드 상태
-  const t = translations[language]; // 현재 언어의 번역
   
+  // 로그인 체크
+  useCheckLogin();
+
+  // Context에서 다크모드와 언어 가져오기
+  const { language, setLanguage, isDarkMode, setIsDarkMode } = useAppContext();
+  
+  // 현재 선택된 언어의 번역 객체
+  const t = translations[language];
+  
+  // WebSocket 훅
   const { 
     sensorData,
     getSensorData,
-    connectionStatus 
+    connectionStatus
   } = useWebSocket();
 
+  // 제어 장치 작동 횟수 상태
   const [controlCnt, setControlCnt] = useState({
     motionDetectedCnt: 0,
     fanMotorCnt: 0,
@@ -104,13 +133,18 @@ const HomeScreen = () => {
     lastMotionDate: '-'
   });
 
+  // ============================================
+  // 데이터 로딩 및 자동 갱신 (1분마다)
+  // ============================================
   useEffect(() => {
     if (connectionStatus === '연결됨 ✅') {
       getSensorData();
+      
       axios.get(`${SERVER_URL}/motions/today`)
       .then(res => {
         const controlCntList = res.data;
         const motionList = controlCntList.filter(item => item.motionDetected === true);
+        
         setControlCnt({
           motionDetectedCnt: motionList.length,
           fanMotorCnt: controlCntList.filter(item => item.fanMotor === 1).length,
@@ -123,10 +157,12 @@ const HomeScreen = () => {
 
       const interval = setInterval(() => {
         getSensorData();
+        
         axios.get(`${SERVER_URL}/motions/today`)
         .then(res => {
           const controlCntList = res.data;
           const motionList = controlCntList.filter(item => item.motionDetected === true);
+          
           setControlCnt({
             motionDetectedCnt: motionList.length,
             fanMotorCnt: controlCntList.filter(item => item.fanMotor === 1).length,
@@ -142,6 +178,9 @@ const HomeScreen = () => {
     }
   }, [connectionStatus, getSensorData]);
 
+  // ============================================
+  // 로딩 화면
+  // ============================================
   if (!sensorData) {
     return (
       <SafeAreaView style={styles.container}>
@@ -155,14 +194,19 @@ const HomeScreen = () => {
     );
   }
 
+  // ============================================
+  // 메인 화면 렌더링
+  // ============================================
   return (
     <SafeAreaView style={[styles.container, isDarkMode && styles.darkContainer]}>
       <Header title={t.title} />
       
-      <ScrollView style={styles.scrollView}>
-        {/* 환영 메시지와 국기 선택 버튼 */}
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContent}
+      >
+        {/* 상단바 */}
         <View style={styles.topBar}>
-          {/* 왼쪽: 환영합니다 + 다크모드 토글 */}
           <View style={styles.leftSection}>
             <Text style={[styles.welcomeText, isDarkMode && styles.darkText]}>{t.welcome}</Text>
             <View style={styles.darkModeToggle}>
@@ -182,9 +226,8 @@ const HomeScreen = () => {
             </View>
           </View>
           
-          {/* 오른쪽: 국기 선택 */}
+          {/* 언어 선택 */}
           <View style={styles.flagContainer}>
-            {/* 한국 */}
             <TouchableOpacity 
               style={styles.flagButtonWrapper}
               onPress={() => setLanguage('ko')}
@@ -200,7 +243,6 @@ const HomeScreen = () => {
               <Text style={[styles.flagLabel, language === 'ko' && styles.flagLabelActive]}>한국어</Text>
             </TouchableOpacity>
             
-            {/* 미국 */}
             <TouchableOpacity 
               style={styles.flagButtonWrapper}
               onPress={() => setLanguage('en')}
@@ -216,7 +258,6 @@ const HomeScreen = () => {
               <Text style={[styles.flagLabel, language === 'en' && styles.flagLabelActive]}>English</Text>
             </TouchableOpacity>
             
-            {/* 일본 */}
             <TouchableOpacity 
               style={styles.flagButtonWrapper}
               onPress={() => setLanguage('ja')}
@@ -232,7 +273,6 @@ const HomeScreen = () => {
               <Text style={[styles.flagLabel, language === 'ja' && styles.flagLabelActive]}>日本語</Text>
             </TouchableOpacity>
             
-            {/* 중국 */}
             <TouchableOpacity 
               style={styles.flagButtonWrapper}
               onPress={() => setLanguage('zh')}
@@ -250,7 +290,7 @@ const HomeScreen = () => {
           </View>
         </View>
 
-        {/* 환경 데이터 마지막 업데이트 */}
+        {/* 환경 데이터 업데이트 시간 */}
         <View style={[styles.infoCard, isDarkMode && styles.darkInfoCard]}>
           <MaterialIcons name="info" size={20} color={isDarkMode ? "#64B5F6" : "#235effff"} />
           <Text style={[styles.infoText, isDarkMode && styles.darkInfoText]}>
@@ -258,7 +298,7 @@ const HomeScreen = () => {
           </Text>
         </View>
 
-        {/* 온도 - 클릭하면 설정 페이지로 */}
+        {/* 온도 센서 */}
         <TouchableOpacity 
           style={[styles.settingCard, isDarkMode && styles.darkCard]}
           onPress={() => router.push('/setting')}
@@ -276,7 +316,7 @@ const HomeScreen = () => {
           </View>
         </TouchableOpacity>
 
-        {/* 습도 - 클릭하면 설정 페이지로 */}
+        {/* 습도 센서 */}
         <TouchableOpacity 
           style={[styles.settingCard, isDarkMode && styles.darkCard]}
           onPress={() => router.push('/setting')}
@@ -294,7 +334,7 @@ const HomeScreen = () => {
           </View>
         </TouchableOpacity>
 
-        {/* 토양습도 - 클릭하면 설정 페이지로 */}
+        {/* 토양 습도 센서 */}
         <TouchableOpacity 
           style={[styles.settingCard, isDarkMode && styles.darkCard]}
           onPress={() => router.push('/setting')}
@@ -312,7 +352,7 @@ const HomeScreen = () => {
           </View>
         </TouchableOpacity>
 
-        {/* 조도 - 클릭하면 설정 페이지로 */}
+        {/* 조도 센서 */}
         <TouchableOpacity 
           style={[styles.settingCard, isDarkMode && styles.darkCard]}
           onPress={() => router.push('/setting')}
@@ -330,7 +370,7 @@ const HomeScreen = () => {
           </View>
         </TouchableOpacity>
 
-        {/* 모션감지센서 마지막 작동 */}
+        {/* 모션센서 업데이트 시간 */}
         <View style={[styles.infoCard, isDarkMode && styles.darkInfoCard]}>
           <MaterialIcons name="info" size={20} color={isDarkMode ? "#64B5F6" : "#3d5affff"} />
           <Text style={[styles.infoText, isDarkMode && styles.darkInfoText]}>
@@ -338,7 +378,7 @@ const HomeScreen = () => {
           </Text>
         </View>
 
-        {/* 모션 감지 횟수 - 클릭하면 설정 페이지로 */}
+        {/* 모션 감지 횟수 */}
         <TouchableOpacity 
           style={[styles.settingCard, isDarkMode && styles.darkCard]}
           onPress={() => router.push('/setting')}
@@ -354,7 +394,7 @@ const HomeScreen = () => {
           </View>
         </TouchableOpacity>
 
-        {/* LED 조명 작동 횟수 - 클릭하면 제어 페이지로 */}
+        {/* LED 조명 작동 횟수 */}
         <TouchableOpacity 
           style={[styles.settingCard, isDarkMode && styles.darkCard]}
           onPress={() => router.push('/control')}
@@ -370,7 +410,7 @@ const HomeScreen = () => {
           </View>
         </TouchableOpacity>
 
-        {/* 물펌프 작동 횟수 - 클릭하면 제어 페이지로 */}
+        {/* 물펌프 작동 횟수 */}
         <TouchableOpacity 
           style={[styles.settingCard, isDarkMode && styles.darkCard]}
           onPress={() => router.push('/control')}
@@ -386,7 +426,7 @@ const HomeScreen = () => {
           </View>
         </TouchableOpacity>
 
-        {/* 환풍기 작동 횟수 - 클릭하면 제어 페이지로 */}
+        {/* 환풍기 작동 횟수 */}
         <TouchableOpacity 
           style={[styles.settingCard, isDarkMode && styles.darkCard]}
           onPress={() => router.push('/control')}
@@ -408,6 +448,7 @@ const HomeScreen = () => {
 
 export default HomeScreen;
 
+// 스타일
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -430,6 +471,9 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollViewContent: {
+    paddingBottom: 100,
   },
   topBar: {
     flexDirection: 'row',
@@ -533,7 +577,6 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     marginHorizontal: 16,
-    // iOS 그림자
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -541,7 +584,6 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    // Android 그림자
     elevation: 4,
   },
   cardHeader: {
