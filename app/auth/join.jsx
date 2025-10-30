@@ -14,7 +14,7 @@ const JoinScreen = () => {
         
         <View style={styles.titleBox}>
           <Text style={styles.title}>회원가입(Join)</Text>
-          <Text style={styles.titleText}>"모든 항목은 필수입력사항입니다."</Text>
+          <Text style={styles.titleText}>"모든 항목은 필수 입력사항입니다."</Text>
         </View>
 
         <View>
@@ -31,14 +31,16 @@ const JoinScreen = () => {
         <View style={styles.id}>  
           <Text>아이디 (필수)</Text>  
           <View style={styles.confirm}>
-            <Input1       
-            color = 'rgba(245, 245, 245, 1)'          
-            borderColor ='rgba(220, 220, 220, 1)'
-            focusBorderColor="green"
-            textColor="rgba(66, 66, 66, 1)"
-            fontSize={18} 
-            style={[styles.input, { width: '1220%' }]}
-            />
+            <View style={{ flex: 1 }}>
+              <Input1       
+              color = 'rgba(245, 245, 245, 1)'          
+              borderColor ='rgba(220, 220, 220, 1)'
+              focusBorderColor="green"
+              textColor="rgba(66, 66, 66, 1)"
+              fontSize={18} 
+              size="large"  // 부모의 남는 공간만큼만 차지
+              />
+            </View>
             <Button1 title="중복확인" size="small" />
           </View>
         </View> 
@@ -72,44 +74,50 @@ const JoinScreen = () => {
         />
       </View>
 
-        <View style={styles.phone}>
-          <Text>연락처 : 스마트폰 (필수)</Text> 
-          <View style={styles.number}>
-            <Input1 
-              color = 'rgba(245, 245, 245, 1)'
-              borderColor ='rgba(220, 220, 220, 1)'
-              focusBorderColor="green"
-              textColor="rgba(66, 66, 66, 1)"
-              fontSize={18}
-              style={[styles.input, { width: '500%' }]} 
-            /> 
-            <Text style={styles.hyphen}>-</Text>
-            <Input1 
-              color = 'rgba(245, 245, 245, 1)'
-              borderColor ='rgba(220, 220, 220, 1)'
-              focusBorderColor="green"
-              textColor="rgba(66, 66, 66, 1)"
-              fontSize={18} 
-              style={[styles.input, { width: '500%' }]}
-            /> 
-            <Text style={styles.hyphen}>-</Text>
-            <Input1 
-              color = 'rgba(245, 245, 245, 1)'
-              borderColor ='rgba(220, 220, 220, 1)'
-              focusBorderColor="green"
-              textColor="rgba(66, 66, 66, 1)"
-              fontSize={18} 
-              style={[styles.input, { width: '500%' }]}
-            /> 
-          </View>
-        </View>
+    <View style={styles.phone}>
+      <Text style={styles.phoneLabel}>스마트폰 (필수)</Text> 
+      <View style={styles.phoneRow}>
+        <Input1 
+          color="rgba(245, 245, 245, 1)"
+          borderColor="rgba(220, 220, 220, 1)"
+          focusBorderColor="green"
+          textColor="rgba(66, 66, 66, 1)"
+          fontSize={18}
+          style={styles.phoneInput}
+          keyboardType="numeric"
+          maxLength={3}
+        /> 
+        <Text style={styles.hyphen}>-</Text>
+        <Input1 
+          color="rgba(245, 245, 245, 1)"
+          borderColor="rgba(220, 220, 220, 1)"
+          focusBorderColor="green"
+          textColor="rgba(66, 66, 66, 1)"
+          fontSize={18}
+          style={styles.phoneInput}
+          keyboardType="numeric"
+          maxLength={4}
+        /> 
+        <Text style={styles.hyphen}>-</Text>
+        <Input1 
+          color="rgba(245, 245, 245, 1)"
+          borderColor="rgba(220, 220, 220, 1)"
+          focusBorderColor="green"
+          textColor="rgba(66, 66, 66, 1)"
+          fontSize={18}
+          style={styles.phoneInput}
+          keyboardType="numeric"
+          maxLength={4}
+        /> 
+      </View>
+    </View>
 
         <View style={styles.sendButton}>
-          <Button1 title="회원가입 하기" 
+          <Button1 title="회원가입 완료" 
             color="#9b3b16ff" 
-            onPress={() => router.replace('/auth/confirm')} />
+            onPress={() => router.replace('/')} />
         </View>
-
+햣
       </SafeAreaView>
     </TouchableWithoutFeedback>
   )
@@ -143,12 +151,39 @@ const styles = StyleSheet.create({
     gap : 10,
   },
   confirmButton : {
-    marginTop : 20,  
+    marginTop : 18, 
+    marginBottom : 8, 
   },
   number : {
     flexDirection : 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',  
-    gap : 10,
+    gap : 8,
+  },
+  phone: {
+    marginTop: 12,
+  },
+  phoneLabel: {
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 8,
+  },
+  phoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',  
+    justifyContent: 'center', 
+    gap: 10, 
+  },
+  phoneInput: {
+    width: 104, 
+    height: 45,
+    textAlign: 'center',
+    borderRadius: 8,
+  },
+  hyphen: {
+    fontSize: 20,
+    color: '#333',
+    textAlignVertical: 'center',
   },
   sendButton : {
     marginTop : 20,

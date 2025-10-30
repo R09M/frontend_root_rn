@@ -1,12 +1,9 @@
-import { StyleSheet, ImageBackground, Text, Alert, 
-  Keyboard, // 🔹키보드 이벤트를 감지하기 위한 API
-  Animated  // 🔹애니메이션 효과를 위한 API
-} from 'react-native'
+import { Keyboard, Animated, StyleSheet, ImageBackground, Text, Alert,  } from 'react-native'
 import Input1 from '@/component/Input1'
 import Button1 from '@/component/Button1'
 import { useRouter } from 'expo-router'
 import bgImage from '@/assets/images/login_img.jpg'
-import { useState, useEffect, useRef } from 'react' // 🔹useEffect, useRef 추가
+import { useState, useEffect, useRef } from 'react' 
 import * as SecureStore from 'expo-secure-store'
 import axios from 'axios'
 import { SERVER_URL } from '@/constants/appConst'
@@ -15,8 +12,7 @@ const LoginScreen = () => {
   
   const router = useRouter()
   
-  // 🔹marginTop을 애니메이션으로 제어하기 위한 Animated Value 생성
-  // 🔹초기값은 300 (원래 marginTop 값)
+  // marginTop을 애니메이션으로 제어하기 위한 Animated Value 생성
   const marginTopAnim = useRef(new Animated.Value(300)).current
   
   // 아이디, 비밀번호 입력값을 저장할 State변수선언
@@ -25,13 +21,11 @@ const LoginScreen = () => {
     userPw: '',
   })
 
-  // 🔹컴포넌트가 마운트될 때 키보드 이벤트 리스너 등록
+  // 컴포넌트가 마운트될 때 키보드 이벤트 리스너 등록
   useEffect(() => {
-    // 🔹키보드가 나타날 때 실행되는 이벤트 리스너
     const keyboardDidShowListener = Keyboard.addListener(
       'keyboardDidShow',
-      () => {
-        // 🔹marginTop을 300에서 150으로 부드럽게 애니메이션
+      () => {    
         Animated.timing(marginTopAnim, {
           toValue: 150,  // 🔹목표값: 150
           duration: 300,  // 🔹애니메이션 지속시간: 300ms
@@ -39,21 +33,16 @@ const LoginScreen = () => {
         }).start()
       }
     )
-
-    // 🔹키보드가 사라질 때 실행되는 이벤트 리스너
     const keyboardDidHideListener = Keyboard.addListener(
       'keyboardDidHide',
       () => {
-        // 🔹marginTop을 다시 300으로 복원
         Animated.timing(marginTopAnim, {
-          toValue: 300,  // 🔹원래값: 300
-          duration: 300,  // 🔹애니메이션 지속시간: 300ms
+          toValue: 300,  
+          duration: 300,  
           useNativeDriver: false,
         }).start()
       }
     )
-
-    // 🔹컴포넌트가 언마운트될 때 리스너 제거
     return () => {
       keyboardDidShowListener.remove()
       keyboardDidHideListener.remove()
