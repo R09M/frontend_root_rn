@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const useWebSocket = () => {
+const useWebSocket = (onMotionAlert, onSettingsReceived) => {  // ← 콜백 2개 추가
   const [ws, setWs] = useState(null);
   const [sensorData, setSensorData] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState('대기 중');
@@ -48,9 +48,22 @@ const useWebSocket = () => {
           const data = JSON.parse(event.data);
           console.log('📊 파싱 성공:', data);
           
-          if (data.data) {
+          // 센서 데이터 처리
+          if (data.data && data.command === 'get_sensor_data') {
             setSensorData(data.data);
             console.log('✅ 센서 데이터 업데이트 완료');
+          }
+          
+          // 🚨 모션 알림 처리
+          if (data.command === 'alert' && data.type === 'motion') {
+            console.log('🚨 모션 감지 알림:', data.message);
+            onMotionAlert?.(data);
+          }
+          
+          // ⚙️ 설정값 수신 처리
+          if (data.command === 'get_settings' && data.data) {
+            console.log('⚙️ 설정값 수신:', data.data);
+            onSettingsReceived?.(data.data);
           }
         } catch (e) {
           console.error('❌ JSON 파싱 에러:', e);
@@ -98,7 +111,7 @@ const useWebSocket = () => {
         socket.close();
       }
     };
-  }, []);
+  }, [onMotionAlert, onSettingsReceived]);  // ← dependency 추가
 
   // ✅ useCallback으로 함수 메모이제이션
   const getSensorData = useCallback(() => {
@@ -111,6 +124,25 @@ const useWebSocket = () => {
     
     if (ws.readyState === WebSocket.OPEN) {
       const command = { command: 'get_sensor_data' };
+      console.log('📤 전송:', command);
+      ws.send(JSON.stringify(command));
+      console.log('✅ 전송 완료');
+    } else {
+      console.error('❌ WebSocket 연결 안됨 - 상태:', ws.readyState);
+    }
+  }, [ws]);
+
+  // ⚙️ 설정값 요청 함수 (새로 추가)
+  const getSettings = useCallback(() => {
+    console.log('⚙️ 설정값 요청');
+    
+    if (!ws) {
+      console.error('❌ WebSocket 객체 없음');
+      return;
+    }
+    
+    if (ws.readyState === WebSocket.OPEN) {
+      const command = { command: 'get_settings' };
       console.log('📤 전송:', command);
       ws.send(JSON.stringify(command));
       console.log('✅ 전송 완료');
@@ -199,6 +231,7 @@ const useWebSocket = () => {
   return {
     sensorData,
     getSensorData,
+    getSettings,  // ← 추가
     controlLED,
     controlPump,
     controlFan,

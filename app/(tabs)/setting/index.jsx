@@ -1,12 +1,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Octicons from '@expo/vector-icons/Octicons';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Alert, Button, Modal, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '../../../component/layout/Header';
 import { colors, SWITCH_THEME } from '../../../constants/colorConstant';
 import useWebSocket from '../../../hooks/useWebSocket';
+import useCheckLogin from '../../../hooks/useCheckLogin';
 
 //기준값 파이썬으로 전송
 const KEY_MAP = {
@@ -15,9 +16,50 @@ const KEY_MAP = {
   humdt: 'soil_min'     // 습도 → 토양수분 기준값
 };
 
+// 낮/밤 판단 함수
+const isDaytime = () => {
+  const hour = new Date().getHours();
+  return hour >= 6 && hour < 18;
+};
+
 const SettingHomeScreen = () => {
-  //WS 훅 불러오기
-  const {updateSettings} = useWebSocket();
+
+  // 로그인 판단 여부 hook
+  useCheckLogin();
+
+  //현재 기준값
+  const [settings, setSettings] = useState({
+    tempt: { label: '온도', value: 26, unit: '°C' },
+    illum: { label: '조도', value: 150, unit: ''},
+    humdt: { label: '습도', value: 34, unit: '%'}
+  });
+
+  //WS 훅 불러오기 - 설정값 받아오는 콜백 추가
+  const {updateSettings, getSettings, connectionStatus} = useWebSocket(
+    null,
+    (serverSettings) => {
+      console.log('📥 서버 설정값 수신:', serverSettings);
+
+      const settings = serverSettings.system_settings;
+      
+      // 낮/밤에 따라 팬 기준값 선택
+      const fanValue = isDaytime() ? settings.fan_day : settings.fan_night;
+
+      setSettings(prev => ({
+        tempt: { ...prev.tempt, value: fanValue },
+        illum: { ...prev.illum, value: settings.light_threshold || prev.illum.value },
+        humdt: { ...prev.humdt, value: settings.soil_min || prev.humdt.value }
+      }));
+    }
+  );
+
+  // 연결되면 서버에서 설정값 불러오기
+  useEffect(() => {
+    if (connectionStatus === '연결됨 ✅') {
+      console.log('⚙️ 서버 설정값 요청 중...');
+      getSettings();
+    }
+  }, [connectionStatus, getSettings]);
 
   //모달 상태
   const [modalVisible, setModalVisible] = useState(false);
@@ -31,43 +73,40 @@ const SettingHomeScreen = () => {
     setModalVisible(true);
   }
 
-  //현재 기준값
-    const [settings, setSettings] = useState({
-    tempt: { label: '온도', value: 26, unit: '°C' },
-    illum: { label: '조도', value: 150, unit: ''},
-    humdt: { label: '습도', value: 34, unit: '%'}
-  });
-
   // 값 저장
   const saveValue = () => {
-    const numValue = parseFloat(inputValue); //문자열을 실수로 변환
+    const numValue = parseFloat(inputValue);
     const setting = settings[selectedSetting];
     
-    // 유효성 검증
     if (isNaN(numValue)) {
       Alert.alert('오류', '숫자를 입력해주세요');
       return;
     }
-  
-    // 상태 업데이트
+
     setSettings(prev => ({
       ...prev,
       [selectedSetting]: { ...prev[selectedSetting], value: numValue }
     }));
 
-    // 서버에 전송 WS
-    updateSettings(KEY_MAP[selectedSetting], numValue);
+    // 온도 설정은 낮/밤 둘 다 전송
+    if (selectedSetting === 'tempt') {
+      updateSettings('fan_day', numValue);
+      updateSettings('fan_night', numValue);
+    } 
+    // 습도 설정은 min/max 둘 다 전송
+    else if (selectedSetting === 'humdt') {
+      updateSettings('soil_min', numValue);
+      updateSettings('soil_max', numValue);
+    } 
+    else {
+      updateSettings(KEY_MAP[selectedSetting], numValue);
+    }
 
-    //성공 메시지
     Alert.alert('알림', `${setting.label} 기준값이 ${numValue}${setting.unit}로 변경되었습니다.`);
-
-    //모달 닫기
     setModalVisible(false);
   }
 
   //슬라이드로 스위치를 on/off함
-  //previousState => !previousState -> 이전 상태의 반대값을 반환하는 코드
-  //const toggleSwitch = () => {setIsEnabled(!isEnabled)}; 와 같음
   const toggleSwitch = () => setIsEnabled(previousState => !previousState);
 
   //공유 버튼 슬라이드 스위치
@@ -75,7 +114,7 @@ const SettingHomeScreen = () => {
 
   // 이상감지 알림 모달 상태
   const [alertModalVisible, setAlertModalVisible] = useState(false);
-  const [selectedAlert, setSelectedAlert] = useState('항상'); // 초기값
+  const [selectedAlert, setSelectedAlert] = useState('항상');
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -89,7 +128,7 @@ const SettingHomeScreen = () => {
         {/* 온도 */}
         <Pressable 
           onPress={() => openModal('tempt')} 
-          disabled={!isEnabled} //모든 기기에서 공유하기 스위치를 비활성화시 비활성화됨
+          disabled={!isEnabled}
           >
           <View style={styles.mainContainer}>
             <View style={styles.leftSection}>
@@ -146,7 +185,6 @@ const SettingHomeScreen = () => {
             </View>
           </View>
         </Pressable>
-        {/* 설명 영역 */}
       </View>
       <Text style={styles.explain}>사용자가 설정한 수치에 도달하면 연결된 기기가 자동으로 작동하여 실내 환경을 관리합니다.</Text>
 
@@ -220,7 +258,6 @@ const SettingHomeScreen = () => {
       {/* 이상감지 알림 설정 */}
       <Modal visible={alertModalVisible} animationType="slide" transparent={false}>
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.GRAY_100}}>
-          {/* 헤더 */}
           <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16 }}>
             <Pressable onPress={() => setAlertModalVisible(false)}>
               <Ionicons name="chevron-back" size={23} color={colors.bla} />
@@ -228,10 +265,7 @@ const SettingHomeScreen = () => {
             <Text style={{ fontSize: 17, fontWeight: '600', marginLeft : 15 }}>이상감지 알림 표시</Text>
           </View>
 
-          {/* 옵션 박스 */}
-          <View
-            style={styles.container}
-          >
+          <View style={styles.container}>
             {['항상', '앱이 켜져있을 때만', '끔'].map((option, index, arr) => {
               const isLast = index === arr.length - 1;
 
