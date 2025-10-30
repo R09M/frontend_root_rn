@@ -1,11 +1,19 @@
-import { Pressable, StyleSheet, Switch, Text, View, Modal, TextInput, Alert, Button } from 'react-native'
-import React, { useState } from 'react'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import { colors, SWITCH_THEME } from '../../../constants/colorConstant'
 import Ionicons from '@expo/vector-icons/Ionicons';
-import Octicons from '@expo/vector-icons/Octicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import Octicons from '@expo/vector-icons/Octicons';
+import { useState } from 'react';
+import { Alert, Button, Modal, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Header from '../../../component/layout/Header';
+import { colors, SWITCH_THEME } from '../../../constants/colorConstant';
 import useWebSocket from '../../../hooks/useWebSocket';
+
+//기준값 파이썬으로 전송
+const KEY_MAP = {
+  tempt: 'fan_day',     // 온도 → 팬 기준값
+  illum: 'light_threshold',  // 조도 → LED 기준값
+  humdt: 'soil_min'     // 습도 → 토양수분 기준값
+};
 
 const SettingHomeScreen = () => {
   //WS 훅 불러오기
@@ -26,7 +34,7 @@ const SettingHomeScreen = () => {
   //현재 기준값
     const [settings, setSettings] = useState({
     tempt: { label: '온도', value: 26, unit: '°C' },
-    illum: { label: '조도', value: 150},
+    illum: { label: '조도', value: 150, unit: ''},
     humdt: { label: '습도', value: 34, unit: '%'}
   });
 
@@ -48,7 +56,7 @@ const SettingHomeScreen = () => {
     }));
 
     // 서버에 전송 WS
-    updateSettings(selectedSetting, numValue);
+    updateSettings(KEY_MAP[selectedSetting], numValue);
 
     //성공 메시지
     Alert.alert('알림', `${setting.label} 기준값이 ${numValue}${setting.unit}로 변경되었습니다.`);
@@ -62,22 +70,27 @@ const SettingHomeScreen = () => {
   //const toggleSwitch = () => {setIsEnabled(!isEnabled)}; 와 같음
   const toggleSwitch = () => setIsEnabled(previousState => !previousState);
 
-  // 모션 감지 on/off 상태
-  const [motionEnabled, setMotionEnabled] = useState(false);
-
   //공유 버튼 슬라이드 스위치
-  const [isEnabled, setIsEnabled] = useState(false);
+  const [isEnabled, setIsEnabled] = useState(true);
+
+  // 이상감지 알림 모달 상태
+  const [alertModalVisible, setAlertModalVisible] = useState(false);
+  const [selectedAlert, setSelectedAlert] = useState('항상'); // 초기값
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <Text style={styles.title}>Settings</Text>
+      <Header
+        title='Settings'
+        onBackPress={() => console.log('back')}
+        onMenuPress={() => console.log('menu')}
+      ></Header>
 
       <View style={styles.container}>
         {/* 온도 */}
-        <Pressable onPress={() => {
-            console.log('Pressable 클릭됨!');  // 먼저 이것만 확인
-            openModal('tempt')
-        }}>
+        <Pressable 
+          onPress={() => openModal('tempt')} 
+          disabled={!isEnabled} //모든 기기에서 공유하기 스위치를 비활성화시 비활성화됨
+          >
           <View style={styles.mainContainer}>
             <View style={styles.leftSection}>
               <View style={styles.iconCircle}>
@@ -95,7 +108,10 @@ const SettingHomeScreen = () => {
         <View style={styles.divider} />
 
         {/* 조도 */}
-        <Pressable onPress={() => openModal('illum')}>
+        <Pressable 
+          onPress={() => openModal('illum')}
+          disabled={!isEnabled}
+          >
           <View style={styles.mainContainer}>
             <View style={styles.leftSection}>
               <View style={styles.iconCircle}>
@@ -104,7 +120,7 @@ const SettingHomeScreen = () => {
               <Text style={styles.content}>조도</Text>
             </View>
             <View style={styles.rightSection}>
-              <Text style={styles.status}>{settings.illum.value}</Text>
+              <Text style={styles.status}>{settings.illum.value}{settings.illum.unit}</Text>
               <Ionicons name="chevron-forward" size={20} color={colors.GRAY_500} />
             </View>
           </View>
@@ -113,7 +129,10 @@ const SettingHomeScreen = () => {
         <View style={styles.divider} />
 
         {/* 습도 */}
-        <Pressable onPress={() => openModal('humdt')}>
+        <Pressable 
+          onPress={() => openModal('humdt')}
+          disabled={!isEnabled}
+          >
           <View style={styles.mainContainer}>
             <View style={styles.leftSection}>
               <View style={styles.iconCircle}>
@@ -127,29 +146,11 @@ const SettingHomeScreen = () => {
             </View>
           </View>
         </Pressable>
-
-        <View style={styles.divider} />
-
-        {/* 모션 감지 */}
-        <View style={styles.mainContainer}>
-          <View style={styles.leftSection}>
-            <View style={styles.iconCircle}>
-              <Octicons name="alert-fill" size={24} color={colors.RED} />
-            </View>
-            <Text style={styles.content}>모션 감지</Text>
-          </View>
-          <View style={styles.rightSection}>
-            <Switch
-              trackColor={SWITCH_THEME.trackColor}
-              thumbColor={motionEnabled ? SWITCH_THEME.thumbColor.true : SWITCH_THEME.thumbColor.false}
-              ios_backgroundColor={SWITCH_THEME.iosBackgroundColor}
-              onValueChange={() => setMotionEnabled(prev => !prev)}
-              value={motionEnabled}
-            />
-          </View>
-        </View>
+        {/* 설명 영역 */}
       </View>
       <Text style={styles.explain}>사용자가 설정한 수치에 도달하면 연결된 기기가 자동으로 작동하여 실내 환경을 관리합니다.</Text>
+
+      {/* 모든 기기에서 공유 영역 */}
       <View style={styles.container}>
         <View style={styles.mainContainer}>
           <Text style={styles.content}>모든 기기에서 공유</Text>
@@ -163,6 +164,25 @@ const SettingHomeScreen = () => {
         </View>
       </View>
       <Text style={styles.explain}>현재 공유되고 있는 사용자의 기기와 웹에 설정값이 동기화됩니다. 버튼을 비활성화할 경우 값을 설정할 수 없습니다.</Text>
+
+      {/* 이상감지 알림 영역 */}
+      <View style={styles.container}>
+        <Pressable onPress={() => setAlertModalVisible(true)}>
+          <View style={styles.mainContainer}>
+            <View style={styles.leftSection}>
+              <View style={styles.iconCircle}>
+                <Octicons name="alert-fill" size={24} color={colors.RED} />
+              </View>
+              <Text style={styles.content}>이상 감지 알림</Text>
+            </View>
+            <View style={styles.rightSection}>
+              <Text style={styles.status}>{selectedAlert}</Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.GRAY_500} />
+            </View>
+          </View>
+        </Pressable>
+      </View>    
+      <Text style={styles.explain}>앱에 권한을 허용하면 해당 앱이 위험을 감지할 때마다 알림을 울립니다.</Text>
 
       {/* 모달 영역 */}
        <Modal
@@ -184,13 +204,57 @@ const SettingHomeScreen = () => {
               placeholder="숫자를 입력하세요"
             />
             <View style={styles.modalButtons}>
-              <Button title="저장" onPress={saveValue} />
+              <Button 
+                title="저장" 
+                onPress={saveValue} />
               <View style={{ width: 10 }} />
-              <Button title="취소" color="gray" onPress={() => setModalVisible(false)} />
+              <Button 
+                title="취소"
+                color={colors.GRAY_300} 
+                onPress={() => setModalVisible(false)} />
             </View>
           </View>
         </View>
       </Modal>
+
+      {/* 이상감지 알림 설정 */}
+      <Modal visible={alertModalVisible} animationType="slide" transparent={false}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.GRAY_100}}>
+          {/* 헤더 */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16 }}>
+            <Pressable onPress={() => setAlertModalVisible(false)}>
+              <Ionicons name="chevron-back" size={23} color={colors.bla} />
+            </Pressable>
+            <Text style={{ fontSize: 17, fontWeight: '600', marginLeft : 15 }}>이상감지 알림 표시</Text>
+          </View>
+
+          {/* 옵션 박스 */}
+          <View
+            style={styles.container}
+          >
+            {['항상', '앱이 켜져있을 때만', '끔'].map((option, index, arr) => {
+              const isLast = index === arr.length - 1;
+
+              return (
+              <Pressable
+                key={option}
+                onPress={() => {
+                  setSelectedAlert(option);
+                  setAlertModalVisible(false);
+                }}
+                style={[styles.optionItem, !isLast && styles.optionDivider]}
+              >
+                <Text style={styles.content}>{option}</Text>
+                {selectedAlert === option && (
+                  <Ionicons name="checkmark" size={22} color={colors.BLUE_600} />
+                )}
+              </Pressable>
+              );
+            })}
+          </View>
+        </SafeAreaView>
+      </Modal>
+
     </SafeAreaView>
   );
 };
@@ -202,17 +266,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.GRAY_200
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginTop: 20,
-    marginBottom: 30
-  },
   container: {
     backgroundColor: colors.WHITE,
     marginHorizontal: '3%',
-    borderRadius: 12,
+    borderRadius: 14,
+    marginTop : 30,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2
   },
   mainContainer: {
     flexDirection: 'row',
@@ -255,7 +319,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 20,
     fontSize : 13,
-    marginBottom : 30
   },
   modalOverlay: {
     flex: 1,
@@ -285,5 +348,20 @@ const styles = StyleSheet.create({
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-  }
-})
+  },
+  optionItem: {
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  optionDivider: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.GRAY_300,
+  },
+  optionText: {
+    fontSize: 16,
+    color: colors.BLACK,
+  },
+});
