@@ -9,19 +9,75 @@ import { colors } from '../../../constants/colorConstant';
 import { useFocusEffect, useRouter } from 'expo-router';
 import useCheckLogin from '../../../hooks/useCheckLogin';
 import { showMotionAlert } from '../../../utils/showMotionAlert';
+import { useAppContext } from '../../../context/AppContext'; // 다크모드 + 다국어 Context 추가
 
-
-// 제어할 장치 정보를 배열로 정의
-const CONTROL_ITEMS = [
-  { id: 'led', icon: '💡', title: 'LED 조명', type: 'led' },
-  { id: 'pump', icon: '💦', title: '물펌프', type: 'pump' },
-  { id: 'fan', icon: '🌀', title: '환풍기', type: 'fan' },
-];
+// ============================================
+// 다국어 번역 데이터 추가
+// ============================================
+const translations = {
+  ko: {
+    title: '장치 제어',
+    autoMode: '자동',
+    manualMode: '수동',
+    modeInUse: '모드 사용 중',
+    switchToManual: '(수동 모드로 전환하려면 스위치를 꺼주세요.)',
+    switchToAuto: '(자동 모드로 전환하려면 스위치를 켜주세요.)',
+    ledLight: 'LED 조명',
+    waterPump: '물펌프',
+    fan: '환풍기',
+  },
+  en: {
+    title: 'Device Control',
+    autoMode: 'Auto',
+    manualMode: 'Manual',
+    modeInUse: 'mode in use',
+    switchToManual: '(Turn off the switch to switch to manual mode.)',
+    switchToAuto: '(Turn on the switch to switch to auto mode.)',
+    ledLight: 'LED Light',
+    waterPump: 'Water Pump',
+    fan: 'Fan',
+  },
+  ja: {
+    title: 'デバイス制御',
+    autoMode: '自動',
+    manualMode: '手動',
+    modeInUse: 'モード使用中',
+    switchToManual: '(手動モードに切り替えるにはスイッチをオフにしてください。)',
+    switchToAuto: '(自動モードに切り替えるにはスイッチをオンにしてください。)',
+    ledLight: 'LED照明',
+    waterPump: 'ウォーターポンプ',
+    fan: '換気扇',
+  },
+  zh: {
+    title: '设备控制',
+    autoMode: '自动',
+    manualMode: '手动',
+    modeInUse: '模式使用中',
+    switchToManual: '(关闭开关以切换到手动模式。)',
+    switchToAuto: '(打开开关以切换到自动模式。)',
+    ledLight: 'LED灯',
+    waterPump: '水泵',
+    fan: '风扇',
+  },
+};
 
 const ControlHomeScreen = () => {
 
   // 로그아웃 상태인지 판단하는 hook
   useCheckLogin();
+
+  // ============================================
+  // 다크모드 & 다국어 Context 가져오기
+  // ============================================
+  const { language, isDarkMode } = useAppContext();
+  const t = translations[language]; // 현재 언어의 번역 객체
+
+  // 제어할 장치 정보를 배열로 정의 (다국어 적용)
+  const CONTROL_ITEMS = [
+    { id: 'led', icon: '💡', title: t.ledLight, type: 'led' },
+    { id: 'pump', icon: '💦', title: t.waterPump, type: 'pump' },
+    { id: 'fan', icon: '🌀', title: t.fan, type: 'fan' },
+  ];
 
   // handleMotionAlert 함수 추가
   const handleMotionAlert = (data) => {
@@ -61,7 +117,9 @@ const ControlHomeScreen = () => {
     });
   };
 
-  // FlatList에서 각 장치 아이템 렌더링
+  // ============================================
+  // FlatList에서 각 장치 아이템 렌더링 (다크모드 prop 전달)
+  // ============================================
   const renderItem = ({ item }) => (
     <ControlCard
       icon={item.icon} // 아이콘 표시
@@ -70,26 +128,31 @@ const ControlHomeScreen = () => {
       onToggle={() => handleToggle(item.id)} // 토글 함수 연결
       type={item.type} // 카드 타입 지정
       disabled={isAuto} // 자동 모드면 비활성화
+      isDarkMode={isDarkMode} // 다크모드 prop 전달
     />
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, isDarkMode && styles.darkContainer]}>
+      {/* ============================================ */}
+      {/* Header 컴포넌트에 다크모드 + 언어선택 추가 */}
+      {/* ============================================ */}
       <Header 
-        title="장치 제어" // 화면 헤더 제목
-        onBackPress={() => console.log('back')} // 뒤로가기 이벤트
-        onMenuPress={() => console.log('menu')} // 메뉴 버튼 이벤트
+        title={t.title}
+        showLanguageSelector={true}
+        showDarkModeToggle={true}
       />
 
-      <View style={styles.modeContainer}>
+      {/* ============================================ */}
+      {/* 다크모드 스타일 적용 */}
+      {/* ============================================ */}
+      <View style={[styles.modeContainer, isDarkMode && styles.darkModeContainer]}>
         <View>
-          <Text style={styles.modeLabel}>
-            {isAuto ? '자동' : '수동'} 모드 사용 중
+          <Text style={[styles.modeLabel, isDarkMode && styles.darkText]}>
+            {isAuto ? t.autoMode : t.manualMode} {t.modeInUse}
           </Text>
-          <Text style={styles.modeSubLabel}>
-            {isAuto
-              ? '(수동 모드로 전환하려면 스위치를 꺼주세요.)'
-              : '(자동 모드로 전환하려면 스위치를 켜주세요.)'}
+          <Text style={[styles.modeSubLabel, isDarkMode && styles.darkSubText]}>
+            {isAuto ? t.switchToManual : t.switchToAuto}
           </Text>
         </View>
         <Switch
@@ -118,6 +181,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.GRAY_200,
+  },
+  // ============================================
+  // 다크모드 스타일 추가
+  // ============================================
+  darkContainer: {
+    backgroundColor: '#1A1A1A',
+  },
+  darkModeContainer: {
+    backgroundColor: '#2D2D2D',
+  },
+  darkText: {
+    color: '#E0E0E0',
+  },
+  darkSubText: {
+    color: '#B0B0B0',
   },
   modeContainer: {
     backgroundColor: colors.WHITE,
@@ -148,4 +226,3 @@ const styles = StyleSheet.create({
     gap: 16,
   },
 });
-
