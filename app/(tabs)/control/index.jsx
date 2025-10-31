@@ -8,6 +8,7 @@ import ControlCard from '../../../component/card/ControlCard';
 import { colors } from '../../../constants/colorConstant';
 import { useFocusEffect, useRouter } from 'expo-router';
 import useCheckLogin from '../../../hooks/useCheckLogin';
+import { showMotionAlert } from '../../../utils/showMotionAlert';
 
 
 // 제어할 장치 정보를 배열로 정의
@@ -22,7 +23,12 @@ const ControlHomeScreen = () => {
   // 로그아웃 상태인지 판단하는 hook
   useCheckLogin();
 
-  const { controlLED, controlPump, controlFan, setMode } = useWebSocket(); // 웹소켓 훅 호출
+  // handleMotionAlert 함수 추가
+  const handleMotionAlert = (data) => {
+    showMotionAlert(data);
+  };
+
+  const { controlLED, controlPump, controlFan, setMode } = useWebSocket(handleMotionAlert); // 웹소켓 훅 호출
 
   const [mode, setModeState] = useState('auto'); // 현재 모드 상태 ('auto' | 'manual')
   const [status, setStatus] = useState({
