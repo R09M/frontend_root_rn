@@ -16,17 +16,17 @@ const ControlCard = ({ icon, title, subtitle, isOn, onToggle, type, disabled, is
       ? [colors.YELLOW, '#FFF4CC']
       : type === 'pump'
       ? [colors.BLUE_500, colors.BLUE_300]
-      : [colors.SKY_500, colors.SKY_200];
+      : ['#78737eaa', '#e9e9e9ff'];
 
   // ============================================
   // 장치 타입에 따라 그라디언트 색상 설정 (다크모드)
   // ============================================
   const darkGradientColors =
     type === 'led'
-      ? ['#FFD54F', '#FFA726'] // 밝은 노란색-주황색
+      ? ['#fde699ff', '#FFA726'] // 밝은 노란색-주황색
       : type === 'pump'
-      ? ['#64B5F6', '#42A5F5'] // 밝은 파란색
-      : ['#d6d6d6ff', '#a5bac4ff']; // 밝은 하늘색
+      ? ['#afd7f8ff', '#42A5F5'] // 밝은 파란색
+      : ['#d6d6d6ff', '#78737eaa']; // 밝은 하늘색
 
   return (
     <View style={[styles.card, isDarkMode && styles.darkCard]}>
