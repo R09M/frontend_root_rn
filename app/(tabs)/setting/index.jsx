@@ -1,19 +1,21 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Octicons from '@expo/vector-icons/Octicons';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Alert, Button, Modal, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '../../../component/layout/Header';
 import { colors, SWITCH_THEME } from '../../../constants/colorConstant';
 import useWebSocket from '../../../hooks/useWebSocket';
 import useCheckLogin from '../../../hooks/useCheckLogin';
+import AsyncStorage from '@react-native-async-storage/async-storage';  // ← 추가
+import { showMotionAlert } from '../../../utils/showMotionAlert';
 
 //기준값 파이썬으로 전송
 const KEY_MAP = {
-  tempt: 'fan_day',     // 온도 → 팬 기준값
-  illum: 'light_threshold',  // 조도 → LED 기준값
-  humdt: 'soil_min'     // 습도 → 토양수분 기준값
+  tempt: 'fan_day',
+  illum: 'light_threshold',
+  humdt: 'soil_min'
 };
 
 // 낮/밤 판단 함수
@@ -24,25 +26,52 @@ const isDaytime = () => {
 
 const SettingHomeScreen = () => {
 
-  // 로그인 판단 여부 hook
   useCheckLogin();
 
-  //현재 기준값
   const [settings, setSettings] = useState({
     tempt: { label: '온도', value: 26, unit: '°C' },
     illum: { label: '조도', value: 150, unit: ''},
     humdt: { label: '습도', value: 34, unit: '%'}
   });
 
-  //WS 훅 불러오기 - 설정값 받아오는 콜백 추가
+  // 이상감지 알림 모달 상태
+  const [alertModalVisible, setAlertModalVisible] = useState(false);
+  const [selectedAlert, setSelectedAlert] = useState('항상');
+  const selectedAlertRef = useRef('항상');
+
+  // 🔹 앱 시작 시 저장된 알림 설정 불러오기
+  useEffect(() => {
+    const loadAlertSetting = async () => {
+      try {
+        const saved = await AsyncStorage.getItem('alertSetting');
+        if (saved) {
+          console.log('✅ 저장된 알림 설정 불러오기:', saved);
+          setSelectedAlert(saved);
+          selectedAlertRef.current = saved;
+        }
+      } catch (e) {
+        console.error('❌ 알림 설정 불러오기 실패:', e);
+      }
+    };
+    loadAlertSetting();
+  }, []);
+
+  // 🚨 모션 알림 핸들러
+  const handleMotionAlert = useCallback((data) => {
+    if (selectedAlertRef.current === '끔') {
+      console.log('🔕 알림 설정: 끔');
+      return;
+    }
+    
+    showMotionAlert(data);
+  }, []);
+
   const {updateSettings, getSettings, connectionStatus} = useWebSocket(
-    null,
+    handleMotionAlert,
     (serverSettings) => {
       console.log('📥 서버 설정값 수신:', serverSettings);
 
       const settings = serverSettings.system_settings;
-      
-      // 낮/밤에 따라 팬 기준값 선택
       const fanValue = isDaytime() ? settings.fan_day : settings.fan_night;
 
       setSettings(prev => ({
@@ -53,7 +82,6 @@ const SettingHomeScreen = () => {
     }
   );
 
-  // 연결되면 서버에서 설정값 불러오기
   useEffect(() => {
     if (connectionStatus === '연결됨 ✅') {
       console.log('⚙️ 서버 설정값 요청 중...');
@@ -61,19 +89,16 @@ const SettingHomeScreen = () => {
     }
   }, [connectionStatus, getSettings]);
 
-  //모달 상태
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedSetting, setSelectedSetting] = useState(null);
   const [inputValue, setInputValue] = useState('');
 
-  //설정 클릭 시 모달 열기
   const openModal = (type) => {
     setSelectedSetting(type);
     setInputValue(settings[type].value.toString());
     setModalVisible(true);
   }
 
-  // 값 저장
   const saveValue = () => {
     const numValue = parseFloat(inputValue);
     const setting = settings[selectedSetting];
@@ -88,12 +113,10 @@ const SettingHomeScreen = () => {
       [selectedSetting]: { ...prev[selectedSetting], value: numValue }
     }));
 
-    // 온도 설정은 낮/밤 둘 다 전송
     if (selectedSetting === 'tempt') {
       updateSettings('fan_day', numValue);
       updateSettings('fan_night', numValue);
     } 
-    // 습도 설정은 min/max 둘 다 전송
     else if (selectedSetting === 'humdt') {
       updateSettings('soil_min', numValue);
       updateSettings('soil_max', numValue);
@@ -106,15 +129,8 @@ const SettingHomeScreen = () => {
     setModalVisible(false);
   }
 
-  //슬라이드로 스위치를 on/off함
   const toggleSwitch = () => setIsEnabled(previousState => !previousState);
-
-  //공유 버튼 슬라이드 스위치
   const [isEnabled, setIsEnabled] = useState(true);
-
-  // 이상감지 알림 모달 상태
-  const [alertModalVisible, setAlertModalVisible] = useState(false);
-  const [selectedAlert, setSelectedAlert] = useState('항상');
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -122,14 +138,10 @@ const SettingHomeScreen = () => {
         title='Settings'
         onBackPress={() => console.log('back')}
         onMenuPress={() => console.log('menu')}
-      ></Header>
+      />
 
       <View style={styles.container}>
-        {/* 온도 */}
-        <Pressable 
-          onPress={() => openModal('tempt')} 
-          disabled={!isEnabled}
-          >
+        <Pressable onPress={() => openModal('tempt')} disabled={!isEnabled}>
           <View style={styles.mainContainer}>
             <View style={styles.leftSection}>
               <View style={styles.iconCircle}>
@@ -146,11 +158,7 @@ const SettingHomeScreen = () => {
 
         <View style={styles.divider} />
 
-        {/* 조도 */}
-        <Pressable 
-          onPress={() => openModal('illum')}
-          disabled={!isEnabled}
-          >
+        <Pressable onPress={() => openModal('illum')} disabled={!isEnabled}>
           <View style={styles.mainContainer}>
             <View style={styles.leftSection}>
               <View style={styles.iconCircle}>
@@ -167,11 +175,7 @@ const SettingHomeScreen = () => {
 
         <View style={styles.divider} />
 
-        {/* 습도 */}
-        <Pressable 
-          onPress={() => openModal('humdt')}
-          disabled={!isEnabled}
-          >
+        <Pressable onPress={() => openModal('humdt')} disabled={!isEnabled}>
           <View style={styles.mainContainer}>
             <View style={styles.leftSection}>
               <View style={styles.iconCircle}>
@@ -188,7 +192,6 @@ const SettingHomeScreen = () => {
       </View>
       <Text style={styles.explain}>사용자가 설정한 수치에 도달하면 연결된 기기가 자동으로 작동하여 실내 환경을 관리합니다.</Text>
 
-      {/* 모든 기기에서 공유 영역 */}
       <View style={styles.container}>
         <View style={styles.mainContainer}>
           <Text style={styles.content}>모든 기기에서 공유</Text>
@@ -203,7 +206,6 @@ const SettingHomeScreen = () => {
       </View>
       <Text style={styles.explain}>현재 공유되고 있는 사용자의 기기와 웹에 설정값이 동기화됩니다. 버튼을 비활성화할 경우 값을 설정할 수 없습니다.</Text>
 
-      {/* 이상감지 알림 영역 */}
       <View style={styles.container}>
         <Pressable onPress={() => setAlertModalVisible(true)}>
           <View style={styles.mainContainer}>
@@ -222,8 +224,7 @@ const SettingHomeScreen = () => {
       </View>    
       <Text style={styles.explain}>앱에 권한을 허용하면 해당 앱이 위험을 감지할 때마다 알림을 울립니다.</Text>
 
-      {/* 모달 영역 */}
-       <Modal
+      <Modal
         visible={modalVisible}
         transparent
         animationType="slide"
@@ -242,25 +243,19 @@ const SettingHomeScreen = () => {
               placeholder="숫자를 입력하세요"
             />
             <View style={styles.modalButtons}>
-              <Button 
-                title="저장" 
-                onPress={saveValue} />
+              <Button title="저장" onPress={saveValue} />
               <View style={{ width: 10 }} />
-              <Button 
-                title="취소"
-                color={colors.GRAY_300} 
-                onPress={() => setModalVisible(false)} />
+              <Button title="취소" color={colors.GRAY_300} onPress={() => setModalVisible(false)} />
             </View>
           </View>
         </View>
       </Modal>
 
-      {/* 이상감지 알림 설정 */}
       <Modal visible={alertModalVisible} animationType="slide" transparent={false}>
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.GRAY_100}}>
           <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16 }}>
             <Pressable onPress={() => setAlertModalVisible(false)}>
-              <Ionicons name="chevron-back" size={23} color={colors.bla} />
+              <Ionicons name="chevron-back" size={23} color={colors.BLACK} />
             </Pressable>
             <Text style={{ fontSize: 17, fontWeight: '600', marginLeft : 15 }}>이상감지 알림 표시</Text>
           </View>
@@ -270,19 +265,29 @@ const SettingHomeScreen = () => {
               const isLast = index === arr.length - 1;
 
               return (
-              <Pressable
-                key={option}
-                onPress={() => {
-                  setSelectedAlert(option);
-                  setAlertModalVisible(false);
-                }}
-                style={[styles.optionItem, !isLast && styles.optionDivider]}
-              >
-                <Text style={styles.content}>{option}</Text>
-                {selectedAlert === option && (
-                  <Ionicons name="checkmark" size={22} color={colors.BLUE_600} />
-                )}
-              </Pressable>
+                <Pressable
+                  key={option}
+                  onPress={async () => {
+                    setSelectedAlert(option);
+                    selectedAlertRef.current = option;
+                    
+                    // 🔹 AsyncStorage에 저장
+                    try {
+                      await AsyncStorage.setItem('alertSetting', option);
+                      console.log('✅ 알림 설정 저장:', option);
+                    } catch (e) {
+                      console.error('❌ 알림 설정 저장 실패:', e);
+                    }
+                    
+                    setAlertModalVisible(false);
+                  }}
+                  style={[styles.optionItem, !isLast && styles.optionDivider]}
+                >
+                  <Text style={styles.content}>{option}</Text>
+                  {selectedAlert === option && (
+                    <Ionicons name="checkmark" size={22} color={colors.BLUE_600} />
+                  )}
+                </Pressable>
               );
             })}
           </View>
