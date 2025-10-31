@@ -55,7 +55,7 @@ const translations = {
     changedTo: 'has been changed to',
     abnormalAlertDisplay: 'Abnormal Alert Display',
     always: 'Always',
-    onlyWhenAppOpen: 'Only when app is open',
+    whileUsing: 'While using',
     off: 'Off',
     explain1: 'When the user-set value is reached, connected devices automatically operate to manage the indoor environment.',
     explain2: 'Settings are synchronized with the user\'s devices and web. If the button is disabled, values cannot be set.',
@@ -78,7 +78,7 @@ const translations = {
     changedTo: 'に変更されました。',
     abnormalAlertDisplay: '異常検知アラート表示',
     always: '常に',
-    onlyWhenAppOpen: 'アプリが開いているときのみ',
+    onlyWhenAppOpen: 'アプリ起動時のみ通知',
     off: 'オフ',
     explain1: 'ユーザーが設定した値に達すると、接続されたデバイスが自動的に動作して室内環境を管理します。',
     explain2: '現在共有されているユーザーのデバイスとウェブに設定値が同期されます。ボタンを無効にすると値を設定できません。',
@@ -113,8 +113,8 @@ const translations = {
 // 알림 옵션 다국어 매핑
 const alertOptionsMap = {
   ko: ['항상', '앱이 켜져있을 때만', '끔'],
-  en: ['Always', 'Only when app is open', 'Off'],
-  ja: ['常に', 'アプリが開いているときのみ', 'オフ'],
+  en: ['Always', 'While using', 'Off'],
+  ja: [' 常に', ' アプリ起動時のみ通知', ' オフ'],
   zh: ['始终', '仅当应用打开时', '关闭'],
 };
 
@@ -142,26 +142,39 @@ const SettingHomeScreen = () => {
   const t = translations[language]; // 현재 언어의 번역 객체
   const alertOptions = alertOptionsMap[language]; // 현재 언어의 알림 옵션
 
+  // ✅ settings에서 label 제거 (값만 저장)
   const [settings, setSettings] = useState({
-    tempt: { label: t.temperature, value: 26, unit: '°C' },
-    illum: { label: t.illuminance, value: 150, unit: ''},
-    humdt: { label: t.humidity, value: 34, unit: '%'}
+    tempt: { value: 26, unit: '°C' },
+    illum: { value: 150, unit: ''},
+    humdt: { value: 34, unit: '%'}
   });
+
+  // ✅ 언어 변경 시 label을 동적으로 가져오는 헬퍼 함수
+  const getSettingLabel = (type) => {
+    const labelMap = {
+      tempt: t.temperature,
+      illum: t.illuminance,
+      humdt: t.humidity
+    };
+    return labelMap[type];
+  };
 
   // 이상감지 알림 모달 상태
   const [alertModalVisible, setAlertModalVisible] = useState(false);
-  const [selectedAlert, setSelectedAlert] = useState(alertOptions[0]); // 기본값: '항상' (현재 언어)
-  const selectedAlertRef = useRef(alertOptions[0]);
+  // ✅ 저장된 알림 설정 인덱스 (언어 독립적)
+  const [selectedAlertIndex, setSelectedAlertIndex] = useState(0); // 기본값: 0 (항상)
+  const selectedAlertIndexRef = useRef(0);
 
   // 🔹 앱 시작 시 저장된 알림 설정 불러오기
   useEffect(() => {
     const loadAlertSetting = async () => {
       try {
-        const saved = await AsyncStorage.getItem('alertSetting');
-        if (saved) {
-          console.log('✅ 저장된 알림 설정 불러오기:', saved);
-          setSelectedAlert(saved);
-          selectedAlertRef.current = saved;
+        const saved = await AsyncStorage.getItem('alertSettingIndex');
+        if (saved !== null) {
+          const index = parseInt(saved, 10);
+          console.log('✅ 저장된 알림 설정 인덱스 불러오기:', index);
+          setSelectedAlertIndex(index);
+          selectedAlertIndexRef.current = index;
         }
       } catch (e) {
         console.error('❌ 알림 설정 불러오기 실패:', e);
@@ -170,15 +183,18 @@ const SettingHomeScreen = () => {
     loadAlertSetting();
   }, []);
 
+  // ✅ 현재 선택된 알림 옵션 텍스트 (언어에 따라 자동 변경)
+  const selectedAlert = alertOptions[selectedAlertIndex];
+
   // 🚨 모션 알림 핸들러
   const handleMotionAlert = useCallback((data) => {
-    if (selectedAlertRef.current === alertOptions[2]) { // '끔'에 해당하는 옵션
+    if (selectedAlertIndexRef.current === 2) { // '끔'에 해당하는 인덱스
       console.log('🔕 알림 설정: 끔');
       return;
     }
     
     showMotionAlert(data);
-  }, [alertOptions]);
+  }, []);
 
   const {updateSettings, getSettings, connectionStatus} = useWebSocket(
     handleMotionAlert,
@@ -216,6 +232,7 @@ const SettingHomeScreen = () => {
   const saveValue = () => {
     const numValue = parseFloat(inputValue);
     const setting = settings[selectedSetting];
+    const settingLabel = getSettingLabel(selectedSetting); // ✅ 동적으로 label 가져오기
     
     if (isNaN(numValue)) {
       Alert.alert(t.error, t.enterNumber);
@@ -239,7 +256,8 @@ const SettingHomeScreen = () => {
       updateSettings(KEY_MAP[selectedSetting], numValue);
     }
 
-    Alert.alert(t.notification, `${setting.label} ${t.thresholdChanged} ${numValue}${setting.unit}${t.changedTo}`);
+    // ✅ 알림 메시지에 동적 label 사용
+    Alert.alert(t.notification, `${settingLabel} ${t.thresholdChanged} ${numValue}${setting.unit}${t.changedTo}`);
     setModalVisible(false);
   }
 
@@ -356,7 +374,8 @@ const SettingHomeScreen = () => {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContainer, isDarkMode && styles.darkModalContainer]}>
             <Text style={[styles.modalTitle, isDarkMode && styles.darkText]}>
-              {settings[selectedSetting]?.label} {t.thresholdSetting}
+              {/* ✅ 동적으로 label 가져오기 */}
+              {getSettingLabel(selectedSetting)} {t.thresholdSetting}
             </Text>
             <TextInput
               style={[styles.input, isDarkMode && styles.darkInput]}
@@ -395,12 +414,13 @@ const SettingHomeScreen = () => {
                 <Pressable
                   key={option}
                   onPress={async () => {
-                    setSelectedAlert(option);
-                    selectedAlertRef.current = option;
+                    // ✅ 인덱스 저장 (언어 독립적)
+                    setSelectedAlertIndex(index);
+                    selectedAlertIndexRef.current = index;
                     
                     try {
-                      await AsyncStorage.setItem('alertSetting', option);
-                      console.log('✅ 알림 설정 저장:', option);
+                      await AsyncStorage.setItem('alertSettingIndex', index.toString());
+                      console.log('✅ 알림 설정 인덱스 저장:', index);
                     } catch (e) {
                       console.error('❌ 알림 설정 저장 실패:', e);
                     }
@@ -410,7 +430,8 @@ const SettingHomeScreen = () => {
                   style={[styles.optionItem, !isLast && styles.optionDivider, isDarkMode && !isLast && styles.darkDivider]}
                 >
                   <Text style={[styles.content, isDarkMode && styles.darkText]}>{option}</Text>
-                  {selectedAlert === option && (
+                  {/* ✅ 인덱스로 비교 */}
+                  {selectedAlertIndex === index && (
                     <Ionicons name="checkmark" size={22} color={colors.BLUE_600} />
                   )}
                 </Pressable>
