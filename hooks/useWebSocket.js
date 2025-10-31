@@ -172,14 +172,12 @@ const useWebSocket = (onMotionAlert, onSettingsReceived) => {  // ← 콜백 2�
       return;
     }
     
-    const actualState = state === 'ON' ? 'OFF' : 'ON';
     const command = {
       command: 'manual_control',
       device: 'pump',
-      state: actualState
+      state: state
     };
     ws.send(JSON.stringify(command));
-    console.log('💦 펌프 제어:', state, '→', actualState);
   }, [ws]);
 
   const controlFan = useCallback((state) => {
@@ -188,14 +186,12 @@ const useWebSocket = (onMotionAlert, onSettingsReceived) => {  // ← 콜백 2�
       return;
     }
     
-    const actualState = state === 'ON' ? 'OFF' : 'ON';
     const command = {
       command: 'manual_control',
       device: 'fan',
-      state: actualState
+      state: state
     };
     ws.send(JSON.stringify(command));
-    console.log('🌀 팬 제어:', state, '→', actualState);
   }, [ws]);
 
   const updateSettings = useCallback((key, value) => {
