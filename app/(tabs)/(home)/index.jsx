@@ -1,6 +1,6 @@
 // React 및 React Native 핵심 라이브러리 import
-import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, ScrollView, ActivityIndicator, TouchableOpacity, Image, Switch, Animated } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
@@ -29,7 +29,6 @@ import { colors } from '../../../constants/colorConstant';
 const translations = {
   ko: {
     title: '홈 화면',
-    welcome: '환영합니다',
     loading: '센서 데이터를 불러오는 중...',
     envUpdate: '마지막 업데이트',
     temperature: '온도',
@@ -47,7 +46,6 @@ const translations = {
   },
   en: {
     title: 'Home',
-    welcome: 'Welcome',
     loading: 'Loading sensor data...',
     envUpdate: 'Data Last Update',
     temperature: 'Temperature',
@@ -65,7 +63,6 @@ const translations = {
   },
   ja: {
     title: 'ホーム',
-    welcome: 'こんにちは',
     loading: 'センサーデータを読み込み中...',
     envUpdate: '最終更新',
     temperature: '温度',
@@ -83,7 +80,6 @@ const translations = {
   },
   zh: {
     title: '主页',
-    welcome: '欢迎',
     loading: '正在加载传感器数据...',
     envUpdate: '最后更新',
     temperature: '温度',
@@ -101,14 +97,6 @@ const translations = {
   },
 };
 
-// 언어별 이미지와 라벨 매핑
-const languageConfig = {
-  ko: { image: require('@/assets/images/korea.png'), label: '한국어' },
-  en: { image: require('@/assets/images/usa.png'), label: 'English' },
-  ja: { image: require('@/assets/images/japan.png'), label: '日本語' },
-  zh: { image: require('@/assets/images/china.png'), label: '简体中文' },
-};
-
 /**
  * ============================================
  * HomeScreen 컴포넌트
@@ -124,7 +112,7 @@ const HomeScreen = () => {
   useCheckLogin();
 
   // Context에서 다크모드와 언어 가져오기
-  const { language, setLanguage, isDarkMode, setIsDarkMode } = useAppContext();
+  const { language, isDarkMode } = useAppContext();
   
   // 현재 선택된 언어의 번역 객체
   const t = translations[language];
@@ -144,79 +132,6 @@ const HomeScreen = () => {
     ledLightCnt: 0,
     lastMotionDate: '-'
   });
-
-  // 언어 선택 팝업 상태
-  const [isLanguageExpanded, setIsLanguageExpanded] = useState(false);
-  
-  // 애니메이션 값
-  const animatedValues = useRef({
-    ko: new Animated.Value(0),
-    en: new Animated.Value(0),
-    ja: new Animated.Value(0),
-    zh: new Animated.Value(0),
-  }).current;
-
-  // ============================================
-  // 언어 선택 팝업 토글 함수
-  // ============================================
-  const toggleLanguageSelector = () => {
-    const toValue = isLanguageExpanded ? 0 : 1;
-
-    // 현재 선택된 언어를 제외한 나머지 언어들
-    const otherLanguages = Object.keys(languageConfig).filter(lang => lang !== language);
-
-    if (!isLanguageExpanded) {
-      // 펼치기
-      setIsLanguageExpanded(true);
-      Animated.stagger(60, [
-        Animated.spring(animatedValues[otherLanguages[0]], {
-          toValue,
-          useNativeDriver: true,
-          tension: 60,
-          friction: 8,
-        }),
-        Animated.spring(animatedValues[otherLanguages[1]], {
-          toValue,
-          useNativeDriver: true,
-          tension: 60,
-          friction: 8,
-        }),
-        Animated.spring(animatedValues[otherLanguages[2]], {
-          toValue,
-          useNativeDriver: true,
-          tension: 60,
-          friction: 8,
-        }),
-      ]).start();
-    } else {
-      // 접기
-      Animated.parallel([
-        Animated.timing(animatedValues[otherLanguages[0]], {
-          toValue,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(animatedValues[otherLanguages[1]], {
-          toValue,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(animatedValues[otherLanguages[2]], {
-          toValue,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start(() => setIsLanguageExpanded(false));
-    }
-  };
-
-  // ============================================
-  // 언어 선택 함수
-  // ============================================
-  const selectLanguage = (lang) => {
-    setLanguage(lang);
-    toggleLanguageSelector();
-  };
 
   // ============================================
   // 데이터 로딩 및 자동 갱신 (1분마다)
@@ -269,7 +184,11 @@ const HomeScreen = () => {
   if (!sensorData) {
     return (
       <SafeAreaView style={styles.container}>
-        <Header title={t.title} />
+        <Header 
+          title={t.title} 
+          showLanguageSelector={true}
+          showDarkModeToggle={true}
+        />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1452ff" />
           <Text style={styles.loadingText}>{connectionStatus}</Text>
@@ -279,188 +198,21 @@ const HomeScreen = () => {
     );
   }
 
-  // 현재 선택된 언어를 제외한 나머지 언어들
-  const otherLanguages = Object.keys(languageConfig).filter(lang => lang !== language);
-
   // ============================================
   // 메인 화면 렌더링
   // ============================================
   return (
     <SafeAreaView style={[styles.container, isDarkMode && styles.darkContainer]}>
-      <Header title={t.title} />
+      <Header 
+        title={t.title}
+        showLanguageSelector={true}
+        showDarkModeToggle={true}
+      />
       
       <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={styles.scrollViewContent}
       >
-        {/* 상단바 */}
-        <View style={styles.topBar}>
-          <View style={styles.leftSection}>
-            <View style={styles.darkModeToggle}>
-              <Switch
-                value={isDarkMode}
-                onValueChange={setIsDarkMode}
-                trackColor={{ false: '#E0E0E0', true: '#4A5568' }}
-                thumbColor={isDarkMode ? '#F4F4F4' : '#FFFFFF'}
-                ios_backgroundColor="#E0E0E0"
-                style={styles.switch}
-              />
-              <Ionicons 
-                name={isDarkMode ? "moon" : "sunny"} 
-                size={18} 
-                color={isDarkMode ? "#FFD700" : "#FFB800"} 
-              />
-            </View>
-          </View>
-          
-          {/* welcomeText를 topBar 바로 아래로 이동 */}
-          <Text style={[styles.welcomeText, isDarkMode && styles.darkText]}>{t.welcome}</Text>
-        </View>
-
-        {/* 언어 선택 팝업 - topBar와 같은 라인에 위치 */}
-        <View style={styles.languageSelectorWrapper}>
-          <View style={styles.languageSelectorContainer}>
-            {/* 현재 선택된 언어 버튼 */}
-            <TouchableOpacity
-              style={styles.currentLanguageButton}
-              onPress={toggleLanguageSelector}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.languageTopLabel}>{t.language}</Text>
-              <View style={styles.currentFlag}>
-                <Image
-                  source={languageConfig[language].image}
-                  style={styles.flagImage}
-                  resizeMode="cover"
-                />
-              </View>
-              <Text style={styles.currentLabel}>{languageConfig[language].label}</Text>
-            </TouchableOpacity>
-
-            {/* 다른 언어 옵션들 (애니메이션) - 아래로 수직 배치 */}
-            {isLanguageExpanded && (
-              <>
-                {/* 첫 번째 옵션 */}
-                <Animated.View
-                  style={[
-                    styles.languageOptionVertical,
-                    {
-                      top: 55,
-                      opacity: animatedValues[otherLanguages[0]],
-                      transform: [
-                        {
-                          translateY: animatedValues[otherLanguages[0]].interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [-20, 0],
-                          }),
-                        },
-                        {
-                          scale: animatedValues[otherLanguages[0]],
-                        },
-                      ],
-                    },
-                  ]}
-                >
-                  <TouchableOpacity
-                    style={styles.languageOptionButton}
-                    onPress={() => selectLanguage(otherLanguages[0])}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.optionFlag}>
-                      <Image
-                        source={languageConfig[otherLanguages[0]].image}
-                        style={styles.flagImage}
-                        resizeMode="cover"
-                      />
-                    </View>
-                    <Text style={styles.optionLabel}>
-                      {languageConfig[otherLanguages[0]].label}
-                    </Text>
-                  </TouchableOpacity>
-                </Animated.View>
-
-                {/* 두 번째 옵션 */}
-                <Animated.View
-                  style={[
-                    styles.languageOptionVertical,
-                    {
-                      top: 95,
-                      opacity: animatedValues[otherLanguages[1]],
-                      transform: [
-                        {
-                          translateY: animatedValues[otherLanguages[1]].interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [-20, 0],
-                          }),
-                        },
-                        {
-                          scale: animatedValues[otherLanguages[1]],
-                        },
-                      ],
-                    },
-                  ]}
-                >
-                  <TouchableOpacity
-                    style={styles.languageOptionButton}
-                    onPress={() => selectLanguage(otherLanguages[1])}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.optionFlag}>
-                      <Image
-                        source={languageConfig[otherLanguages[1]].image}
-                        style={styles.flagImage}
-                        resizeMode="cover"
-                      />
-                    </View>
-                    <Text style={styles.optionLabel}>
-                      {languageConfig[otherLanguages[1]].label}
-                    </Text>
-                  </TouchableOpacity>
-                </Animated.View>
-
-                {/* 세 번째 옵션 */}
-                <Animated.View
-                  style={[
-                    styles.languageOptionVertical,
-                    {
-                      top: 135,
-                      opacity: animatedValues[otherLanguages[2]],
-                      transform: [
-                        {
-                          translateY: animatedValues[otherLanguages[2]].interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [-20, 0],
-                          }),
-                        },
-                        {
-                          scale: animatedValues[otherLanguages[2]],
-                        },
-                      ],
-                    },
-                  ]}
-                >
-                  <TouchableOpacity
-                    style={styles.languageOptionButton}
-                    onPress={() => selectLanguage(otherLanguages[2])}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.optionFlag}>
-                      <Image
-                        source={languageConfig[otherLanguages[2]].image}
-                        style={styles.flagImage}
-                        resizeMode="cover"
-                      />
-                    </View>
-                    <Text style={styles.optionLabel}>
-                      {languageConfig[otherLanguages[2]].label}
-                    </Text>
-                  </TouchableOpacity>
-                </Animated.View>
-              </>
-            )}
-          </View>
-        </View>
-
         {/* 환경 데이터 업데이트 시간 */}
         <View style={[styles.infoCard, isDarkMode && styles.darkInfoCard]}>
           <MaterialIcons name="info" size={20} color={isDarkMode ? "#64B5F6" : "#235effff"} />
@@ -646,38 +398,6 @@ const styles = StyleSheet.create({
   scrollViewContent: {
     paddingBottom: 100,
   },
-  topBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    position: 'relative',
-  },
-  welcomeText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    textAlign: 'center',
-    zIndex: -1,
-  },
-  leftSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    zIndex: 1,
-  },
-  darkModeToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  switch: {
-    transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }],
-  },
   darkContainer: {
     backgroundColor: '#1A1A1A',
   },
@@ -693,94 +413,6 @@ const styles = StyleSheet.create({
   darkInfoText: {
     color: '#B0C4DE',
   },
-  // 언어 선택 래퍼 - topBar와 같은 라인에 위치
-  languageSelectorWrapper: {
-    position: 'absolute',
-    top: 12,
-    right: 16,
-    zIndex: 100,
-  },
-  // 언어 선택 팝업 스타일
-  languageSelectorContainer: {
-    position: 'relative',
-    width: 50,
-    height: 50,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-  },
-  currentLanguageButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-  },
-  languageTopLabel: {
-    fontSize: 10,
-    color: '#004cf1ff',
-    fontWeight: '500',
-    marginBottom: 2,
-  },
-  currentFlag: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
-    borderWidth: 1.5,
-    borderColor: '#1452ff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-    elevation: 3,
-    padding: 2,
-  },
-  currentLabel: {
-    fontSize: 10,
-    color: '#1452ff',
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  languageOptionVertical: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    zIndex: 5,
-    alignItems: 'center',
-  },
-  languageOptionButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  optionFlag: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#e0e0e0ff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-    padding: 2,
-  },
-  optionLabel: {
-    fontSize: 9,
-    color: '#646fd8ff',
-    fontWeight: '500',
-    marginTop: 2,
-  },
-  flagImage: {
-    width: '100%',
-    height: '76%',
-    borderRadius: 1,
-  },
   infoCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -789,6 +421,7 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 16,
     marginHorizontal: 16,
+    marginTop: 16,
     gap: 8,
   },
   infoText: {
