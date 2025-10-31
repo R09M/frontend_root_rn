@@ -125,6 +125,12 @@ const KEY_MAP = {
   humdt: 'soil_min'
 };
 
+// 낮/밤 판단 함수
+const isDaytime = () => {
+  const hour = new Date().getHours();
+  return hour >= 6 && hour < 18;
+};
+
 const SettingHomeScreen = () => {
 
   useCheckLogin();
@@ -196,9 +202,10 @@ const SettingHomeScreen = () => {
       console.log('📥 서버 설정값 수신:', serverSettings);
 
       const settings = serverSettings.system_settings;
+      const fanValue = isDaytime() ? settings.fan_day : settings.fan_night;
 
       setSettings(prev => ({
-        tempt: { ...prev.tempt, value: settings.fan_day },
+        tempt: { ...prev.tempt, value: fanValue },
         illum: { ...prev.illum, value: settings.light_threshold || prev.illum.value },
         humdt: { ...prev.humdt, value: settings.soil_min || prev.humdt.value }
       }));
