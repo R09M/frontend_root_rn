@@ -319,18 +319,28 @@ const MyInfoModal = ({ visible, onClose }) => {
     </View>
   );
 
+  const handleModalClose = () => {
+    // 편집 상태 초기화
+    setIsEditingBasic(false);
+    setIsEditingFarm(false);
+    
+    // 외부 onClose 호출
+    onClose();
+  };
+
+
   return (
     <Modal
       visible={visible}
       transparent={true}
       animationType="fade"
-      onRequestClose={onClose}
+      onRequestClose={handleModalClose}
     >
       <View style={styles.overlay}>
-        <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
+        <TouchableOpacity style={styles.backdrop} onPress={handleModalClose} activeOpacity={1} />
         
         <View style={styles.modalContent}>
-          <TouchableOpacity style={styles.closeIcon} onPress={onClose}>
+          <TouchableOpacity style={styles.closeIcon} onPress={handleModalClose}>
             <Ionicons name="close" size={28} color="#1A1A1A" />
           </TouchableOpacity>
 
