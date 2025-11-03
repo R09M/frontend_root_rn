@@ -6,8 +6,13 @@ import axios from 'axios';
 import { useFocusEffect } from 'expo-router';
 import { SERVER_URL } from '../../constants/appConst';
 import * as SecureStore from 'expo-secure-store';
+import DaumPostcodeModal from './DaumPostcodeModal';
 
 const MyInfoModal = ({ visible, onClose }) => {
+
+  // 주소 선택 모달 상태
+  const [postcodeModalVisible, setPostcodeModalVisible] = useState(false);
+
   // 내 정보 수정 state 변수
   const [isEditingBasic, setIsEditingBasic] = useState(false);
   const [isEditingFarm, setIsEditingFarm] = useState(false);
@@ -270,7 +275,10 @@ const MyInfoModal = ({ visible, onClose }) => {
               placeholder="기본 주소"
               placeholderTextColor="#999"
             />
-            <TouchableOpacity style={styles.addressButton}>
+            <TouchableOpacity 
+              style={styles.addressButton}
+              onPress={() => setPostcodeModalVisible(true)} // 주소 모달 열기
+            >
               <Text style={styles.addressButtonText}>주소</Text>
             </TouchableOpacity>
           </View>
@@ -328,6 +336,13 @@ const MyInfoModal = ({ visible, onClose }) => {
     onClose();
   };
 
+  const handleSelectAddress = (address) => {
+    setEditedFarmData(prev => ({
+      ...prev,
+      applAddr: address
+    }));
+    setPostcodeModalVisible(false);
+  };
 
   return (
     <Modal
@@ -341,7 +356,7 @@ const MyInfoModal = ({ visible, onClose }) => {
         
         <View style={styles.modalContent}>
           <TouchableOpacity style={styles.closeIcon} onPress={handleModalClose}>
-            <Ionicons name="close" size={28} color="#1A1A1A" />
+            <Ionicons name="close" size={28} color='#333333' />
           </TouchableOpacity>
 
           <ScrollView showsVerticalScrollIndicator={false}>
@@ -442,6 +457,11 @@ const MyInfoModal = ({ visible, onClose }) => {
               />
             </View>
           </ScrollView>
+          <DaumPostcodeModal
+            visible={postcodeModalVisible}
+            onClose={() => setPostcodeModalVisible(false)}
+            onSelectAddress={handleSelectAddress}
+          />
         </View>
       </View>
     </Modal>
@@ -534,7 +554,7 @@ const styles = StyleSheet.create({
   manageButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: colors.GREEN_300,
+    backgroundColor: colors.SKY_300,
     borderRadius: 6,
   },
   manageButtonText: {
@@ -573,7 +593,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: colors.GREEN_300,
+    borderColor: colors.SKY_300,
     borderRadius: 6,
     paddingVertical: 6,
     paddingHorizontal: 8,
@@ -593,7 +613,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: colors.GREEN_300,
+    borderColor: colors.SKY_300,
     borderRadius: 6,
     paddingVertical: 6,
     paddingHorizontal: 4,
@@ -618,7 +638,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: colors.GREEN_300,
+    borderColor: colors.SKY_300,
     borderRadius: 6,
     paddingVertical: 6,
     paddingHorizontal: 4,
@@ -642,14 +662,14 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: colors.GREEN_300,
+    borderColor: colors.SKY_300,
     borderRadius: 6,
     paddingVertical: 6,
     paddingHorizontal: 8,
     marginRight: 8,
   },
   addressButton: {
-    backgroundColor: colors.GREEN_300,
+    backgroundColor: colors.SKY_300,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
@@ -665,7 +685,7 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: colors.GREEN_300,
+    borderColor: colors.SKY_300,
     borderRadius: 6,
     paddingVertical: 6,
     paddingHorizontal: 8,
@@ -686,7 +706,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: colors.GREEN_300,
+    borderColor: colors.SKY_300,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 6,
@@ -695,7 +715,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: colors.GREEN_300,
+    backgroundColor: colors.SKY_300,
   },
   radioText: {
     fontSize: 14,
