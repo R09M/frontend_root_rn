@@ -1,12 +1,22 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 
-export const showMotionAlert = (data) => {
+export const showMotionAlert = async (data) => {
+  // ✅ 이 부분 추가
+  const savedIndex = await AsyncStorage.getItem('alertSettingIndex');
+  
+  if (savedIndex === '2') {
+    console.log('🔕 알림 끔 - 표시 안 함');
+    return;
+  }
+  
+  // 기존 Toast 코드
   Toast.show({
     type: 'motionAlert',
-    text1: '모션 감지!',
-    text2: data.message || '움직임이 감지되었습니다',
-    visibilityTime: 1500,  // ← 여기서만 수정!
+    text1: '알림!',
+    text2: data.message,
     position: 'top',
-    topOffset: 60,
+    visibilityTime: 4000,
+    topOffset: 50,
   });
 };
