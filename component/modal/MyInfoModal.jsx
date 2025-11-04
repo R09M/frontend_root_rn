@@ -7,6 +7,7 @@ import { useFocusEffect } from 'expo-router';
 import { SERVER_URL } from '../../constants/appConst';
 import * as SecureStore from 'expo-secure-store';
 import DaumPostcodeModal from './DaumPostcodeModal';
+import * as ImagePicker from 'expo-image-picker';
 
 const MyInfoModal = ({ visible, onClose }) => {
 
@@ -32,6 +33,9 @@ const MyInfoModal = ({ visible, onClose }) => {
     businessTelArr: ['', '', '']
   });
 
+  // 프로필 이미지 state 추가
+  const [profileImage, setProfileImage] = useState('https://via.placeholder.com/80');
+
   // 내 정보를 세팅할 useEffect
   useFocusEffect(
     useCallback(() => {
@@ -43,6 +47,18 @@ const MyInfoModal = ({ visible, onClose }) => {
           
           const res = await axios.get(`${SERVER_URL}/applications/${result.userId}`);
           setUserInfo(res.data);
+
+          if (res.data.userDTO?.userImgDTO?.attachedImgName) {
+            // 서버 이미지 경로 설정
+            const imageUrl = `${SERVER_URL}/upload_files/user/${res.data.userDTO.userImgDTO.attachedImgName}`;
+            console.log('========== 이미지 URL:', imageUrl);  // ← 이거 추가
+            console.log('========== attachedImgName:', res.data.userDTO.userImgDTO.attachedImgName);  // ← 이거 추가
+            setProfileImage(imageUrl);
+          } else {
+            // 이미지 없으면 기본 이미지
+            console.log('========== 이미지 없음, res.data:', res.data);  // ← 이거 추가
+            setProfileImage('https://via.placeholder.com/80');
+          }
           
           if (res.data.userDTO?.userName) {
             setEditedBasicData(prev => ({
@@ -84,8 +100,74 @@ const MyInfoModal = ({ visible, onClose }) => {
     }, [visible, reload])
   );
 
-  const handleImageEdit = () => {
-    alert('프로필 사진 수정 기능');
+  const handleImageEdit = async () => {
+    // 1. 갤러리 권한 요청
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (!permissionResult.granted) {
+      alert('갤러리 접근 권한이 필요합니다.');
+      return;
+    }
+
+    // 2. 이미지 선택 (편집 가능, 1:1 비율)
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    // 3. 이미지 선택 완료 시
+    if (!result.canceled) {
+      const selectedImage = result.assets[0];
+      
+      // 미리보기 즉시 표시
+      setProfileImage(selectedImage.uri);
+      
+      // 서버에 즉시 업로드
+      await uploadProfileImage(selectedImage);
+    }
+  };
+
+  // 프로필 이미지 서버 업로드 함수
+  const uploadProfileImage = async (imageInfo) => {
+    try {
+      const loginInfo = await SecureStore.getItemAsync('loginInfo');
+      const result = JSON.parse(loginInfo);
+
+      // FormData 생성
+      const formData = new FormData();
+      
+      // 이미지 파일 추가 (React Native 방식)
+      formData.append('userImg', {
+        uri: imageInfo.uri,
+        type: 'image/jpeg',
+        name: 'profile.jpg'
+      });
+      
+      // userId 추가
+      formData.append('userId', result.userId);
+
+      // axios로 전송
+      const response = await axios.post(
+        `${SERVER_URL}/users/upload-img`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          }
+        }
+      );
+
+      if (response.status === 200) {
+        alert('프로필 사진이 변경되었습니다.');
+        // setReload(!reload);
+      }
+    } catch (error) {
+      console.log('업로드 실패:', error);
+      alert('이미지 업로드에 실패했습니다.');
+      setProfileImage('https://via.placeholder.com/80');
+    }
   };
 
   // 일반 필드 변경 핸들러
@@ -191,7 +273,7 @@ const MyInfoModal = ({ visible, onClose }) => {
           placeholderTextColor="#999"
         />
       ) : (
-        <Text style={styles.value}>{value}</Text>
+        <Text style={styles.value}>{value || ''}</Text>
       )}
     </View>
   );
@@ -230,7 +312,7 @@ const MyInfoModal = ({ visible, onClose }) => {
           />
         </View>
       ) : (
-        <Text style={styles.value}>{telArr.join('-')}</Text>
+        <Text style={styles.value}>{telArr.filter(Boolean).join('-') || ''}</Text>
       )}
     </View>
   );
@@ -256,7 +338,7 @@ const MyInfoModal = ({ visible, onClose }) => {
           />
         </View>
       ) : (
-        <Text style={styles.value}>{emailArr.join('@')}</Text>
+        <Text style={styles.value}>{emailArr.filter(Boolean).join('@') || ''}</Text>
       )}
     </View>
   );
@@ -268,13 +350,20 @@ const MyInfoModal = ({ visible, onClose }) => {
       {isEditing ? (
         <View style={styles.addressContainer}>
           <View style={styles.addressFirstRow}>
-            <TextInput
-              style={styles.addressInput}
-              value={editedFarmData.applAddr ?? applAddr}
-              onChangeText={(text) => handleFieldChange(type, 'applAddr', text)}
-              placeholder="기본 주소"
-              placeholderTextColor="#999"
-            />
+            <TouchableOpacity
+              onPress={() => setPostcodeModalVisible(true)}
+              activeOpacity={0.8} // 눌렀을 때 살짝 투명하게
+            >
+              <TextInput
+                style={[styles.addressInput, { width: 120 }]}
+                value={editedFarmData.applAddr ?? applAddr ?? ''}
+                onChangeText={(text) => handleFieldChange(type, 'applAddr', text)}
+                placeholder="기본 주소"
+                placeholderTextColor="#999"
+                editable={false}       // 키보드 방지
+                pointerEvents="none"   // TextInput 자체 터치 무시
+              />
+            </TouchableOpacity>
             <TouchableOpacity 
               style={styles.addressButton}
               onPress={() => setPostcodeModalVisible(true)} // 주소 모달 열기
@@ -284,14 +373,17 @@ const MyInfoModal = ({ visible, onClose }) => {
           </View>
           <TextInput
             style={styles.addressDetailInput}
-            value={editedFarmData.addrDetail ?? addrDetail}
+            value={editedFarmData.addrDetail ?? addrDetail ?? ''}
             onChangeText={(text) => handleFieldChange(type, 'addrDetail', text)}
             placeholder="상세 주소"
             placeholderTextColor="#999"
           />
         </View>
       ) : (
-        <Text style={styles.value}>{`${applAddr || ''} ${addrDetail || ''}`}</Text>
+        <Text style={styles.value}>
+          {/* 수정: 안전하게 문자열로 변환 */}
+          {[applAddr, addrDetail].filter(Boolean).join('\n') || '주소 없음'}
+        </Text>
       )}
     </View>
   );
@@ -322,7 +414,7 @@ const MyInfoModal = ({ visible, onClose }) => {
           </TouchableOpacity>
         </View>
       ) : (
-        <Text style={styles.value}>{value === 'CORPORATE' ? '법인' : '개인'}</Text>
+        <Text style={styles.value}>{value === 'CORPORATE' ? '법인' : value === 'PERSONAL' ? '개인' : ''}</Text>
       )}
     </View>
   );
@@ -364,16 +456,18 @@ const MyInfoModal = ({ visible, onClose }) => {
             <View style={styles.profileSection}>
               <View style={styles.avatarContainer}>
                 <Image
-                  source={{ uri: 'https://via.placeholder.com/80' }}
+                  source={{ uri: profileImage }} // state로 변경
                   style={styles.avatar}
                 />
                 <TouchableOpacity 
                   style={styles.editImageButton}
                   onPress={handleImageEdit}
+                  activeOpacity={0.7} // 살짝 더 부드러운 터치 효과
                 >
                   <Ionicons name="pencil" size={16} color="#FFFFFF" />
                 </TouchableOpacity>
               </View>
+              {/* <Text style={styles.profileHint}>사진을 클릭하여 변경</Text> */}
             </View>
 
             {/* 기본 정보 */}
@@ -514,25 +608,43 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     overflow: 'visible',
     position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   avatar: {
     width: '100%',
     height: '100%',
     borderRadius: 40,
     backgroundColor: '#F0F0F0',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
   },
   editImageButton: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
+    bottom: -2,
+    right: -2,
     backgroundColor: colors.GREEN_300,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  profileHint: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#999999',
+    fontWeight: '500',
   },
   section: {
     backgroundColor: '#F8F8F8',
@@ -598,7 +710,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 8,
   },
-  // 전화번호 스타일
   telInputContainer: {
     flex: 2,
     flexDirection: 'row',
@@ -623,7 +734,6 @@ const styles = StyleSheet.create({
     color: '#666666',
     fontSize: 14,
   },
-  // 이메일 스타일
   emailInputContainer: {
     flex: 2,
     flexDirection: 'row',
@@ -648,7 +758,6 @@ const styles = StyleSheet.create({
     color: '#666666',
     fontSize: 14,
   },
-  // 주소 스타일
   addressContainer: {
     flex: 2,
   },
@@ -690,7 +799,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 8,
   },
-  // 라디오 버튼 스타일
   radioContainer: {
     flex: 2,
     flexDirection: 'row',
