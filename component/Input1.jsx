@@ -30,6 +30,8 @@ const Input1 = ({
 
   return (
     <View>
+       {/* label이 있을 때만 표시 */}
+      {label ? <Text style={styles.label}>{label}</Text> : null}  
       <TextInput
         style={[
           styles.input,
