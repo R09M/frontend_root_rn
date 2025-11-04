@@ -6,6 +6,7 @@ import * as SecureStore from 'expo-secure-store';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useAppContext } from '../../context/AppContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import MyInfoModal from '../modal/MyInfoModal';
 
 // 다국어 번역
 const translations = {
@@ -45,6 +46,9 @@ const Header = ({ title, onBackPress, showLanguageSelector = false, showDarkMode
   const router = useRouter();
   const { language, setLanguage, isDarkMode, setIsDarkMode } = useAppContext();
   const t = translations[language];
+
+  // 내 정보 모달을 보여줄지 결정하는 state 변수
+  const [myInfoModalVisible, setMyInfoModalVisible] = useState(false);
 
   const animatedValues = useRef({
     ko: new Animated.Value(0),
@@ -124,8 +128,9 @@ const Header = ({ title, onBackPress, showLanguageSelector = false, showDarkMode
     toggleLanguageSelector();
   };
 
+  // header의 popup menu의 제목과 기능을 저장할 배열
   const menuOptions = [
-    { label: t.myInfo, onPress: () => alert(t.myInfo) },
+    { label: t.myInfo, onPress: () => setMyInfoModalVisible(true) },
     { label: t.logout, onPress: logout, color: 'red' },
   ];
 
@@ -158,6 +163,10 @@ const Header = ({ title, onBackPress, showLanguageSelector = false, showDarkMode
             />
           </View>
         )}
+        <MyInfoModal 
+          visible={myInfoModalVisible}
+          onClose={() => setMyInfoModalVisible(false)}
+        />
       </View>
 
       {/* 타이틀 */}
