@@ -5,7 +5,7 @@ import { Pressable } from 'react-native'
 const Button1 = ({
   title = '버튼',
   color = 'green',
-  textColor = '#fff',
+  textColor = 'rgba(255, 255, 255, 1)',
   size = 'large', // small | medium | large
   padding = 10,
   fontSize = 16,

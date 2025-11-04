@@ -88,6 +88,7 @@ const LoginScreen = () => {
             setLoginData((prev) => ({ ...prev, userId: text }))
           }
           textColor="white" 
+          placeholderColor='rgba(255, 255, 255, 0.5)'
           fontSize={18}
         />
         <Input1
@@ -98,6 +99,7 @@ const LoginScreen = () => {
             setLoginData((prev) => ({ ...prev, userPw: text }))
           }
           textColor="white"
+          placeholderColor='rgba(255, 255, 255, 0.5)'
           fontSize={18}
         />
         <Button1 title="로그인" onPress={login} />
@@ -106,7 +108,7 @@ const LoginScreen = () => {
         </Text>
         <Button1 
           title="회원가입" 
-          color="#9b3b16ff" 
+          color="rgba(155, 59, 22, 1)" 
           onPress={() => router.replace('/auth/join')} 
         />
       </Animated.View>
