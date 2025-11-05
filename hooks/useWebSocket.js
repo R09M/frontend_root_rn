@@ -1,9 +1,23 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
-const useWebSocket = (onMotionAlert, onSettingsReceived) => {  // ← 콜백 2개 추가
+const useWebSocket = (onMotionAlert, onSettingsReceived, onAutoControlResult, onDeviceStatusReceived) => {
   const [ws, setWs] = useState(null);
   const [sensorData, setSensorData] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState('대기 중');
+
+  // ✅ 콜백을 ref로 저장 (최신 값 유지하면서 useEffect 재실행 방지)
+  const onMotionAlertRef = useRef(onMotionAlert);
+  const onSettingsReceivedRef = useRef(onSettingsReceived);
+  const onAutoControlResultRef = useRef(onAutoControlResult);
+  const onDeviceStatusReceivedRef = useRef(onDeviceStatusReceived);
+
+  // ref 업데이트
+  useEffect(() => {
+    onMotionAlertRef.current = onMotionAlert;
+    onSettingsReceivedRef.current = onSettingsReceived;
+    onAutoControlResultRef.current = onAutoControlResult;
+    onDeviceStatusReceivedRef.current = onDeviceStatusReceived;
+  }, [onMotionAlert, onSettingsReceived, onAutoControlResult, onDeviceStatusReceived]);
 
   useEffect(() => {
     const SERVER_IP = '192.168.30.235';
@@ -54,24 +68,42 @@ const useWebSocket = (onMotionAlert, onSettingsReceived) => {  // ← 콜백 2�
             console.log('✅ 센서 데이터 업데이트 완료');
           }
           
-          // 🚨 모션 알림 처리
+          // 🚨 모션 알림 처리 - ref 사용
           if (data.command === 'alert' && data.type === 'motion') {
             console.log('🚨 모션 감지 알림:', data.message);
-            onMotionAlert?.(data);
+            onMotionAlertRef.current?.(data);
           }
           
-          // ⚙️ 설정값 수신 처리
+          // ⚙️ 설정값 수신 처리 - ref 사용
           if (data.command === 'get_settings' && data.data) {
             console.log('⚙️ 설정값 수신:', data.data);
-            onSettingsReceived?.(data.data);
+            onSettingsReceivedRef.current?.(data.data);
+          }
+
+          // 🔄 자동 모드 전환 제어 결과 처리 - ref 사용
+          if (data.command === 'set_mode' && data.mode === 'auto' && data.control_result) {
+            console.log('🔄 자동 모드 제어 결과:', data.control_result);
+            onAutoControlResultRef.current?.(data.control_result);
+          }
+          
+          // 🔄 수동 모드 전환 시 현재 상태 처리 - ref 사용
+          if (data.command === 'set_mode' && data.mode === 'manual' && data.device_status) {
+            console.log('🔄 수동 모드 현재 상태:', data.device_status);
+            onDeviceStatusReceivedRef.current?.(data.device_status);
+          }
+          
+          // 🔌 장치 상태 수신 처리 - ref 사용
+          if (data.command === 'get_device_status' && data.data) {
+            console.log('🔌 장치 상태 수신:', data.data);
+            onDeviceStatusReceivedRef.current?.(data.data);
           }
         } catch (e) {
-          console.error('❌ JSON 파싱 에러:', e);
+          // console.error('❌ JSON 파싱 에러:', e);
         }
       };
 
       socket.onerror = (error) => {
-        console.error('❌ 웹소켓 에러!', error);
+        // console.error('❌ 웹소켓 에러!', error);
         setConnectionStatus('에러 ❌');
       };
 
@@ -87,7 +119,7 @@ const useWebSocket = (onMotionAlert, onSettingsReceived) => {  // ← 콜백 2�
             connect();
           }, 5000);
         } else if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-          console.error('❌ 재연결 실패: 최대 시도 횟수 초과');
+          // console.error('❌ 재연결 실패: 최대 시도 횟수 초과');
           setConnectionStatus('연결 불가 ❌');
         } else {
           setConnectionStatus('연결 종료');
@@ -111,14 +143,14 @@ const useWebSocket = (onMotionAlert, onSettingsReceived) => {  // ← 콜백 2�
         socket.close();
       }
     };
-  }, [onMotionAlert, onSettingsReceived]);  // ← dependency 추가
+  }, []); // ✅ 의존성 배열 비우기 - 마운트 시 한 번만 실행
 
-  // ✅ useCallback으로 함수 메모이제이션
+  // 나머지 코드는 동일...
   const getSensorData = useCallback(() => {
     console.log('📡 센서 데이터 요청');
     
     if (!ws) {
-      console.error('❌ WebSocket 객체 없음');
+      // console.error('❌ WebSocket 객체 없음');
       return;
     }
     
@@ -128,16 +160,15 @@ const useWebSocket = (onMotionAlert, onSettingsReceived) => {  // ← 콜백 2�
       ws.send(JSON.stringify(command));
       console.log('✅ 전송 완료');
     } else {
-      console.error('❌ WebSocket 연결 안됨 - 상태:', ws.readyState);
+      // console.error('❌ WebSocket 연결 안됨 - 상태:', ws.readyState);
     }
   }, [ws]);
 
-  // ⚙️ 설정값 요청 함수 (새로 추가)
   const getSettings = useCallback(() => {
     console.log('⚙️ 설정값 요청');
     
     if (!ws) {
-      console.error('❌ WebSocket 객체 없음');
+      // console.error('❌ WebSocket 객체 없음');
       return;
     }
     
@@ -147,13 +178,30 @@ const useWebSocket = (onMotionAlert, onSettingsReceived) => {  // ← 콜백 2�
       ws.send(JSON.stringify(command));
       console.log('✅ 전송 완료');
     } else {
-      console.error('❌ WebSocket 연결 안됨 - 상태:', ws.readyState);
+      // console.error('❌ WebSocket 연결 안됨 - 상태:', ws.readyState);
+    }
+  }, [ws]);
+
+  const getDeviceStatus = useCallback(() => {
+    console.log('🔌 장치 상태 요청');
+    
+    if (!ws) {
+      // console.error('❌ WebSocket 객체 없음');
+      return;
+    }
+    
+    if (ws.readyState === WebSocket.OPEN) {
+      const command = { command: 'get_device_status' };
+      console.log('📤 전송:', command);
+      ws.send(JSON.stringify(command));
+      console.log('✅ 전송 완료');
+    } else {
+      // console.error('❌ WebSocket 연결 안됨 - 상태:', ws.readyState);
     }
   }, [ws]);
 
   const controlLED = useCallback((state) => {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
-      console.error('❌ WebSocket 연결 안됨');
       return;
     }
     
@@ -168,7 +216,6 @@ const useWebSocket = (onMotionAlert, onSettingsReceived) => {  // ← 콜백 2�
 
   const controlPump = useCallback((state) => {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
-      console.error('❌ WebSocket 연결 안됨');
       return;
     }
     
@@ -182,7 +229,6 @@ const useWebSocket = (onMotionAlert, onSettingsReceived) => {  // ← 콜백 2�
 
   const controlFan = useCallback((state) => {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
-      console.error('❌ WebSocket 연결 안됨');
       return;
     }
     
@@ -196,7 +242,7 @@ const useWebSocket = (onMotionAlert, onSettingsReceived) => {  // ← 콜백 2�
 
   const updateSettings = useCallback((key, value) => {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
-      console.error('❌ WebSocket 연결 안됨');
+      // console.error('❌ WebSocket 연결 안됨');
       return;
     }
     
@@ -211,7 +257,7 @@ const useWebSocket = (onMotionAlert, onSettingsReceived) => {  // ← 콜백 2�
 
   const setMode = useCallback((device, mode) => {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
-      console.error('❌ WebSocket 연결 안됨');
+      // console.error('❌ WebSocket 연결 안됨');
       return;
     }
     
@@ -227,7 +273,8 @@ const useWebSocket = (onMotionAlert, onSettingsReceived) => {  // ← 콜백 2�
   return {
     sensorData,
     getSensorData,
-    getSettings,  // ← 추가
+    getSettings,
+    getDeviceStatus,
     controlLED,
     controlPump,
     controlFan,
