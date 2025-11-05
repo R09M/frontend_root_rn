@@ -84,7 +84,46 @@ const ControlHomeScreen = () => {
     showMotionAlert(data);
   };
 
-  const { controlLED, controlPump, controlFan, setMode } = useWebSocket(handleMotionAlert); // 웹소켓 훅 호출
+  // 자동 모드 전환 시 제어 결과 처리
+  const handleAutoControlResult = (controlResult) => {
+    console.log('🔄 자동 모드 제어 결과:', controlResult);
+    
+    setStatus((prev) => ({
+      ...prev,
+      led: controlResult.led?.status === 'ON',
+      pump: controlResult.pump?.status === 'ON',
+      fan: controlResult.fan?.status === 'ON'
+    }));
+  };
+
+  // 장치 상태 업데이트 처리
+  const handleDeviceStatus = (deviceData) => {
+    console.log('🔌 장치 상태 업데이트:', deviceData);
+    
+    // 모드 업데이트
+    const firstMode = deviceData.led.mode;
+    setModeState(firstMode);
+    
+    // 장치 상태 업데이트
+    setStatus({
+      led: deviceData.led.status === 'ON',
+      pump: deviceData.pump.status === 'ON',
+      fan: deviceData.fan.status === 'ON'
+    });
+  };
+
+  const { 
+    controlLED, 
+    controlPump, 
+    controlFan, 
+    setMode,
+    getDeviceStatus
+  } = useWebSocket(
+    handleMotionAlert,
+    null,  // 설정값 콜백 (사용 안 함)
+    handleAutoControlResult,
+    handleDeviceStatus
+  );
 
   const [mode, setModeState] = useState('auto'); // 현재 모드 상태 ('auto' | 'manual')
   const [status, setStatus] = useState({
@@ -92,6 +131,16 @@ const ControlHomeScreen = () => {
     pump: false,
     fan: false,
   }); // 각 장치 상태 저장
+
+  // 화면 진입 시 현재 장치 상태 불러오기
+  useFocusEffect(
+    useCallback(() => {
+      console.log('📱 제어 화면 진입 - 현재 상태 요청');
+      if (getDeviceStatus) {
+        getDeviceStatus();
+      }
+    }, [getDeviceStatus])
+  );
 
   const isAuto = mode === 'auto'; // 자동 모드 여부 확인
 
@@ -118,7 +167,7 @@ const ControlHomeScreen = () => {
   };
 
   // ============================================
-  // FlatList에서 각 장치 아이템 렌더링 (다크모드 prop 전달)
+  // FlatList에서 각 장치 아이템 렌더링 (다크모드 + isAuto prop 전달)
   // ============================================
   const renderItem = ({ item }) => (
     <ControlCard
@@ -129,6 +178,7 @@ const ControlHomeScreen = () => {
       type={item.type} // 카드 타입 지정
       disabled={isAuto} // 자동 모드면 비활성화
       isDarkMode={isDarkMode} // 다크모드 prop 전달
+      isAuto={isAuto} // ✅ 자동 모드 여부 전달
     />
   );
 

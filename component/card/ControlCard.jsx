@@ -4,9 +4,9 @@ import { colors } from '../../constants/colorConstant';
 
 // ============================================
 // ControlCard 컴포넌트: 장치 토글 버튼과 정보 표시용 카드
-// isDarkMode prop 추가
+// isDarkMode, isAuto prop 추가
 // ============================================
-const ControlCard = ({ icon, title, subtitle, isOn, onToggle, type, disabled, isDarkMode }) => {
+const ControlCard = ({ icon, title, subtitle, isOn, onToggle, type, disabled, isDarkMode, isAuto }) => {
   
   // ============================================
   // 장치 타입에 따라 그라디언트 색상 설정 (라이트모드)
@@ -28,6 +28,21 @@ const ControlCard = ({ icon, title, subtitle, isOn, onToggle, type, disabled, is
       ? ['#afd7f8ff', '#42A5F5'] // 밝은 파란색
       : ['#d6d6d6ff', '#78737eaa']; // 밝은 하늘색
 
+  // ✅ 자동 모드일 때 그라데이션 색상 결정
+  const getGradientColors = () => {
+    // 자동 모드일 때는 회색
+    if (isAuto) {
+      return isDarkMode ? ['#3A3A3A', '#3A3A3A'] : ['#D1D5DB', '#D1D5DB'];
+    }
+    
+    // 수동 모드일 때 기존 로직
+    if (isOn) {
+      return isDarkMode ? darkGradientColors : gradientColors;
+    } else {
+      return isDarkMode ? ['#3A3A3A', '#3A3A3A'] : [colors.GRAY_200, colors.GRAY_200];
+    }
+  };
+
   return (
     <View style={[styles.card, isDarkMode && styles.darkCard]}>
       <View style={styles.cardHeader}>
@@ -44,21 +59,18 @@ const ControlCard = ({ icon, title, subtitle, isOn, onToggle, type, disabled, is
         disabled={disabled}
       >
         <LinearGradient
-          colors={
-            isOn 
-              ? (isDarkMode ? darkGradientColors : gradientColors) 
-              : (isDarkMode ? ['#3A3A3A', '#3A3A3A'] : [colors.GRAY_200, colors.GRAY_200])
-          }
+          colors={getGradientColors()} // ✅ 함수로 색상 결정
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[styles.toggleButton, disabled && styles.cardDisabled]}
         >
+          {/* ✅ 자동 모드일 때만 "Disabled" 표시, 아니면 기존대로 ON/OFF */}
           <Text style={[
             styles.toggleText, 
-            isOn && styles.toggleTextActive,
-            isDarkMode && !isOn && styles.darkToggleText
+            isOn && !isAuto && styles.toggleTextActive,
+            isDarkMode && !isOn && !isAuto && styles.darkToggleText
           ]}>
-            {isOn ? 'ON' : 'OFF'}
+            {isAuto ? 'Disabled' : (isOn ? 'ON' : 'OFF')}
           </Text>
           <View style={[styles.powerIconContainer, isDarkMode && styles.darkPowerIconContainer]}>
             <View style={[styles.powerIcon, isDarkMode && styles.darkPowerIcon]}>
