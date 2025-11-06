@@ -190,7 +190,7 @@ const SettingHomeScreen = () => {
     showMotionAlert(data);
   }, []);
 
-  const {updateSettings, getSettings, connectionStatus} = useWebSocket(
+  const {updateSettings, getSettings, setMode, connectionStatus} = useWebSocket(
     handleMotionAlert,
     (serverSettings) => {
       console.log('📥 서버 설정값 수신:', serverSettings);
@@ -248,6 +248,9 @@ const SettingHomeScreen = () => {
     else {
       updateSettings(KEY_MAP[selectedSetting], numValue);
     }
+
+    // ✅ 기준값 변경 시 자동 모드로 전환
+    setMode('all', 'auto');
 
     // ✅ 알림 메시지에 동적 label 사용
     Alert.alert(t.notification, `${settingLabel} ${t.thresholdChanged} ${numValue}${setting.unit}${t.changedTo}`);
